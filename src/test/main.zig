@@ -66,9 +66,28 @@ test "binary ip non-deterministic encryption and decryption" {
     var st: ipcrypt.IPCrypt = undefined;
     ipcrypt.ipcrypt_init(&st, key);
     defer ipcrypt.ipcrypt_deinit(&st);
+
     var encrypted_ip: [ipcrypt.IPCRYPT_NDIP_BYTES]u8 = undefined;
     ipcrypt.ipcrypt_nd_encrypt_ip16(&st, &encrypted_ip, &ip, &tweak);
     var decrypted_ip: [16]u8 = undefined;
     ipcrypt.ipcrypt_nd_decrypt_ip16(&st, &decrypted_ip, &encrypted_ip);
     try testing.expectEqualSlices(u8, &ip, &decrypted_ip);
+}
+
+test "equivalence between AES and KIASU-BC with tweak=0*" {
+    const ip: [16]u8 = .{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
+    const key = "0123456789abcdef";
+    const tweak: [8]u8 = .{ 0, 0, 0, 0, 0, 0, 0, 0 };
+
+    var st: ipcrypt.IPCrypt = undefined;
+    ipcrypt.ipcrypt_init(&st, key);
+    defer ipcrypt.ipcrypt_deinit(&st);
+
+    var encrypted_ip: [ipcrypt.IPCRYPT_NDIP_BYTES]u8 = undefined;
+    ipcrypt.ipcrypt_nd_encrypt_ip16(&st, &encrypted_ip, &ip, &tweak);
+
+    var encrypted_ip2 = ip;
+    ipcrypt.ipcrypt_encrypt_ip16(&st, &encrypted_ip2);
+
+    try testing.expectEqualSlices(u8, encrypted_ip[ipcrypt.IPCRYPT_TWEAKBYTES..], &encrypted_ip2);
 }
