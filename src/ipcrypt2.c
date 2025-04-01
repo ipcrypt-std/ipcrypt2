@@ -247,7 +247,7 @@ typedef BlockVec KeySchedule[1 + ROUNDS];
  * AesState holds the expanded round keys for encryption/decryption.
  */
 typedef struct AesState {
-    BlockVec rkeys[1 + ROUNDS];
+    KeySchedule rkeys;
 } AesState;
 
 /**
