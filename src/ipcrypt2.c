@@ -27,8 +27,12 @@
 #include <stdint.h>
 #include <string.h>
 
-#include <arpa/inet.h>
 #include <sys/types.h>
+#ifdef _WIN32
+#    include <ws2tcpip.h>
+#else
+#    include <arpa/inet.h>
+#endif
 
 #include "include/ipcrypt2.h"
 
@@ -515,7 +519,7 @@ ipcrypt_ip16_to_str(char ip_str[IPCRYPT_MAX_IP_STR_BYTES], const uint8_t ip16[16
     int    is_ipv4_mapped = 1;
     size_t i;
 
-    COMPILER_ASSERT(IPCRYPT_MAX_IP_STR_BYTES >= INET6_ADDRSTRLEN);
+    COMPILER_ASSERT(IPCRYPT_MAX_IP_STR_BYTES >= 46U);
 
     // Check whether it's an IPv4-mapped IPv6 address (::ffff:x.x.x.x).
     for (i = 0; i < 10; i++) {

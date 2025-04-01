@@ -37,6 +37,9 @@ pub fn build(b: *std.Build) void {
 
     main_tests.addIncludePath(b.path("src/include"));
     main_tests.linkLibrary(lib);
+    if (target.result.os.tag == .windows) {
+        main_tests.linkSystemLibrary("ws2_32");
+    }
 
     const run_main_tests = b.addRunArtifact(main_tests);
 
