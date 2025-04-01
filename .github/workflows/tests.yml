@@ -1,0 +1,28 @@
+name: Tests
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Zig
+        uses: mlugg/setup-zig@v1
+
+      - name: Unit tests
+        run: |
+          zig build test
+          zig build test -Doptimize=ReleaseSafe
+          zig build test -Doptimize=ReleaseFast
