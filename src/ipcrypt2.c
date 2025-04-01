@@ -232,10 +232,10 @@ typedef __m128i BlockVec;
 /**
  * Expand an 8-byte tweak into a 128-bit register.
  */
-static const BlockVec tweak_shuffle_mask = { (long long) 0x8080030280800100ULL,
+static const BlockVec TWEAK_SHUFFLE_MASK = { (long long) 0x8080030280800100ULL,
                                              (long long) 0x8080070680800504ULL };
 #    define TWEAK_EXPAND(tweak) \
-        _mm_shuffle_epi8(_mm_loadu_si64((const void *) tweak), tweak_shuffle_mask)
+        _mm_shuffle_epi8(_mm_loadu_si64((const void *) tweak), TWEAK_SHUFFLE_MASK)
 
 #else
 #    error This architecture is not supported yet
