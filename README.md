@@ -54,7 +54,7 @@ It supports both IPv4 and IPv6 addresses, and it can optionally preserve the IP 
 
 An example using GCC or Clang might look like:
 
-```bash
+```sh
 # 1. Compile the library
 gcc -c -O2 ipcrypt2.c -o ipcrypt2.o
 
@@ -68,13 +68,13 @@ If you are cross-compiling for ARM, make sure your toolchain targets AES-enabled
 
 Zig can compile and link C code. You can typically build the project by running:
 
-```bash
+```sh
 zig build -Doptimize=ReleaseFast
 ```
 
 or
 
-```bash
+```sh
 zig build -Doptimize=ReleaseSmall
 ```
 
