@@ -1,8 +1,8 @@
-# IPCrypt2
+# `ipcrypt2`
 
-IPCrypt2 is a lightweight C library that encrypts (or “obfuscates”) IP addresses for privacy and security purposes.
+`ipcrypt2` is a lightweight C library that encrypts (or “obfuscates”) IP addresses for privacy and security purposes.
 
-It supports both IPv4 and IPv6 addresses, and it can optionally preserve the IP format (so an IP address is still recognized as an IP address after encryption). IPCrypt2 also provides a non-deterministic encryption mode, where encrypting the same address multiple times will yield different ciphertexts.
+It supports both IPv4 and IPv6 addresses, and it can optionally preserve the IP format (so an IP address is still recognized as an IP address after encryption). `ipcrypt2` also provides a non-deterministic encryption mode, where encrypting the same address multiple times will yield different ciphertexts.
 
 ## Features
 
@@ -26,7 +26,7 @@ It supports both IPv4 and IPv6 addresses, and it can optionally preserve the IP 
 
 ## Table of Contents
 
-- [IPCrypt2](#ipcrypt2)
+- [`ipcrypt2`](#ipcrypt2)
   - [Features](#features)
   - [Table of Contents](#table-of-contents)
   - [Getting Started](#getting-started)
@@ -160,7 +160,7 @@ size_t ipcrypt_ip16_to_str(char ip_str[IPCRYPT_MAX_IP_STR_BYTES], const uint8_t 
 
 ## Examples
 
-Below are two illustrative examples of using IPCrypt2 in C.
+Below are two illustrative examples of using `ipcrypt2` in C.
 
 ### Format-Preserving Example
 
@@ -265,4 +265,4 @@ int main(void) {
 
 ---
 
-**Enjoy using IPCrypt2!** Contributions and bug reports are always welcome. Feel free to open issues or submit pull requests on GitHub to help improve the library.
+**Enjoy using `ipcrypt2`!** Contributions and bug reports are always welcome. Feel free to open issues or submit pull requests on GitHub to help improve the library.
