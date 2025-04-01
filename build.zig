@@ -16,7 +16,7 @@ pub fn build(b: *std.Build) void {
         .linkage = .static,
         .name = "ipcrypt2",
         .root_module = lib_mod,
-        .version = .{ .major = 1, .minor = 0, .patch = 0 },
+        .version = .{ .major = 1, .minor = 0, .patch = 1 },
     });
 
     lib.linkLibC();
