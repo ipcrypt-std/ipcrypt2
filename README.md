@@ -13,7 +13,7 @@ It supports both IPv4 and IPv6 addresses, and it can optionally preserve the IP 
   In “standard” mode, an address is encrypted into another valid IP address. This means that consumers of the data (e.g., logs) still see what appears to be an IP address, but without revealing the original address.
 
 - **Non-Deterministic Encryption**
-  Encrypting the same address twice with the same key can produce different ciphertexts, making it harder for adversaries to detect repeated addresses.
+  Encrypting the same address twice with the same key produces different ciphertexts, making it harder for adversaries to detect repeated addresses.
 
 - **Fast and Minimal**
   Written in C with no external dependencies. Relies on hardware-accelerated AES instructions on modern Intel/AMD (x86_64) and ARM (aarch64) CPUs.
