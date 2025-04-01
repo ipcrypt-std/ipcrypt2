@@ -232,9 +232,12 @@ typedef __m128i BlockVec;
 /**
  * Expand an 8-byte tweak into a 128-bit register.
  */
-#    define TWEAK_EXPAND(tweak)                                                                    \
-        _mm_set_epi8(0, 0, tweak[7], tweak[6], 0, 0, tweak[5], tweak[4], 0, 0, tweak[3], tweak[2], \
-                     0, 0, tweak[1], tweak[0])
+#    define TWEAK_EXPAND(tweak)                                                           \
+        _mm_shuffle_epi8(_mm_loadu_si64((const void *) tweak),                            \
+                         _mm_setr_epi8(0, 1, (char) 0x80, (char) 0x80, 2, 3, (char) 0x80, \
+                                       (char) 0x80, 4, 5, (char) 0x80, (char) 0x80, 6, 7, \
+                                       (char) 0x80, (char) 0x80))
+
 #else
 #    error This architecture is not supported yet
 #endif
