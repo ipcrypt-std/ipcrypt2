@@ -244,6 +244,11 @@ typedef __m128i BlockVec;
 typedef BlockVec KeySchedule[1 + ROUNDS];
 
 /**
+ * Inverse key schedule for decryption.
+ */
+typedef BlockVec InvKeySchedule[ROUNDS - 1];
+
+/**
  * AesState holds the expanded round keys for encryption/decryption.
  */
 typedef struct AesState {
@@ -321,22 +326,27 @@ static void
 aes_decrypt(uint8_t x[16], const AesState *st)
 {
     const BlockVec *rkeys = st->rkeys;
+    InvKeySchedule  rkeys_inv;
     BlockVec        t;
     size_t          i;
 
+    // Given the purpose of this library, we assume that decryption is not a frequent operation.
+    for (i = 0; i < ROUNDS - 1; i++) {
+        rkeys_inv[i] = RKINVERT(rkeys[ROUNDS - 1 - i]);
+    }
 #ifdef AES_XENCRYPT
     // AArch64 path with AES_XDECRYPT.
     t = AES_XDECRYPT(LOAD128(x), rkeys[ROUNDS]);
-    for (i = ROUNDS - 1; i > 1; i--) {
-        t = AES_XDECRYPT(t, RKINVERT(rkeys[i]));
+    for (i = 0; i < ROUNDS - 2; i++) {
+        t = AES_XDECRYPT(t, rkeys_inv[i]);
     }
-    t = AES_XDECRYPTLAST(t, RKINVERT(rkeys[1]));
+    t = AES_XDECRYPTLAST(t, rkeys_inv[i]);
     t = XOR128(t, rkeys[0]);
 #else
     // x86_64 path using AES_DECRYPT.
     t = XOR128(LOAD128(x), rkeys[ROUNDS]);
-    for (i = ROUNDS - 1; i > 0; i--) {
-        t = AES_DECRYPT(t, RKINVERT(rkeys[i]));
+    for (i = 0; i < ROUNDS - 1; i++) {
+        t = AES_DECRYPT(t, rkeys_inv[i]);
     }
     t = AES_DECRYPTLAST(t, rkeys[0]);
 #endif
@@ -381,22 +391,28 @@ aes_encrypt_with_tweak(uint8_t x[16], const AesState *st, const uint8_t tweak[IP
 static void
 aes_decrypt_with_tweak(uint8_t x[16], const AesState *st, const uint8_t tweak[IPCRYPT_TWEAKBYTES])
 {
-    const BlockVec *rkeys       = st->rkeys;
-    const BlockVec  tweak_block = TWEAK_EXPAND(tweak);
+    const BlockVec *rkeys = st->rkeys;
+    InvKeySchedule  rkeys_inv;
+    const BlockVec  tweak_block     = TWEAK_EXPAND(tweak);
+    const BlockVec  tweak_block_inv = RKINVERT(tweak_block);
     BlockVec        t;
     size_t          i;
 
+    // Given the purpose of this library, we assume that decryption is not a frequent operation.
+    for (i = 0; i < ROUNDS - 1; i++) {
+        rkeys_inv[i] = RKINVERT(rkeys[ROUNDS - 1 - i]);
+    }
 #ifdef AES_XENCRYPT
     t = AES_XDECRYPT(LOAD128(x), XOR128(tweak_block, rkeys[ROUNDS]));
-    for (i = ROUNDS - 1; i > 1; i--) {
-        t = AES_XDECRYPT(t, RKINVERT(XOR128(tweak_block, rkeys[i])));
+    for (i = 0; i < ROUNDS - 2; i++) {
+        t = AES_XDECRYPT(t, XOR128(tweak_block_inv, rkeys_inv[i]));
     }
-    t = AES_XDECRYPTLAST(t, RKINVERT(XOR128(tweak_block, rkeys[1])));
+    t = AES_XDECRYPTLAST(t, XOR128(tweak_block_inv, rkeys_inv[i]));
     t = XOR128(t, XOR128(tweak_block, rkeys[0]));
 #else
     t = XOR128_3(LOAD128(x), tweak_block, rkeys[ROUNDS]);
-    for (i = ROUNDS - 1; i > 0; i--) {
-        t = AES_DECRYPT(t, RKINVERT(XOR128(tweak_block, rkeys[i])));
+    for (i = 0; i < ROUNDS - 1; i++) {
+        t = AES_DECRYPT(t, XOR128(tweak_block_inv, rkeys_inv[i]));
     }
     t = AES_DECRYPTLAST(t, XOR128(tweak_block, rkeys[0]));
 #endif
