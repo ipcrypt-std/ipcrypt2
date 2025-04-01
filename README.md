@@ -249,7 +249,7 @@ int main(void) {
    - You must provide a secure 16-byte AES key. Protect it and ensure it remains secret.
 
 2. **Tweak Randomness** (for non-deterministic mode)  
-   - The 8-byte tweak does not need to be secret; however, it should be random or unique for each encryption to prevent predictable patterns. While collisions may become become a statistical concern after approximately 2^32 encryptions with the same key and IP address, they do not directly expose the IP address without the key.
+   - The 8-byte tweak does not need to be secret; however, it should be random or unique for each encryption to prevent predictable patterns. While collisions may become a statistical concern after approximately 2^32 encryptions with the same key and IP address, they do not directly expose the IP address without the key.
 
 3. **IP Format Preservation**  
    - In “standard” mode, the library encrypts a 16-byte IP buffer into another 16-byte buffer. After encryption, it *may become a valid IPv6 address even if the original address was IPv4*, or vice versa.  
