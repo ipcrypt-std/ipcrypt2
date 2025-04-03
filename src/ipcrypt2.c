@@ -154,23 +154,34 @@ AES_KEYGEN(BlockVec block_vec, const int rc)
     return XOR128(b, c);
 }
 
-#elif defined(__x86_64__)
+#else
 
-#    ifdef __clang__
+#    if defined(__x86_64__) || defined(__i386__)
+
+#        ifdef __clang__
 /**
  * Enable AES/AVX instructions when compiling with Clang.
  */
-#        pragma clang attribute push(__attribute__((target("aes,sse4.1"))), apply_to = function)
-#    elif defined(__GNUC__)
+#            pragma clang attribute push(__attribute__((target("aes,sse4.1"))), apply_to = function)
+#        elif defined(__GNUC__)
 /**
  * Enable AES/AVX instructions when compiling with GCC.
  */
-#        pragma GCC target("aes,sse4.1")
-#    endif
+#            pragma GCC target("aes,sse4.1")
+#        endif
 
-#    include <smmintrin.h>
-#    include <tmmintrin.h>
-#    include <wmmintrin.h>
+#        include <smmintrin.h>
+#        include <tmmintrin.h>
+#        include <wmmintrin.h>
+
+#    else
+#        ifdef __clang__
+#            pragma clang attribute push(__attribute__((target(""))), apply_to = function)
+#        elif defined(__GNUC__)
+#            pragma GCC target("")
+#        endif
+#        include "softaes/untrinsics.h"
+#    endif
 
 /**
  * On x86_64, we represent AES blocks using __m128i.
@@ -232,13 +243,10 @@ typedef __m128i BlockVec;
 /**
  * Expand an 8-byte tweak into a 128-bit register.
  */
-static const BlockVec TWEAK_SHUFFLE_MASK = { (long long) 0x8080030280800100ULL,
-                                             (long long) 0x8080070680800504ULL };
-#    define TWEAK_EXPAND(tweak) \
-        _mm_shuffle_epi8(_mm_loadu_si64((const void *) tweak), TWEAK_SHUFFLE_MASK)
-
-#else
-#    error This architecture is not supported yet
+#    define TWEAK_EXPAND(tweak)                                                                    \
+        _mm_shuffle_epi8(_mm_loadu_si64((const void *) tweak),                                     \
+                         _mm_setr_epi8(0x00, 0x01, 0x80, 0x80, 0x02, 0x03, 0x80, 0x80, 0x04, 0x05, \
+                                       0x80, 0x80, 0x06, 0x07, 0x80, 0x80))
 #endif
 
 /**

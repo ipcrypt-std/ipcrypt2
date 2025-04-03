@@ -13,10 +13,10 @@ It supports both IPv4 and IPv6 addresses, and it can optionally preserve the IP 
   In “standard” mode, an address is encrypted into another valid IP address. This means that consumers of the data (e.g., logs) still see what appears to be an IP address, but without revealing the original address.
 
 - **Non-Deterministic Encryption**
-  Encrypting the same address twice with the same key produces different ciphertexts, making it harder for adversaries to detect repeated addresses.
+  Supports non-deterministic encryption using the KIASU-BC tweakable block cipher, ensuring that repeated encryptions of the same IP produce different outputs.
 
 - **Fast and Minimal**
-  Written in C with no external dependencies. Relies on hardware-accelerated AES instructions on modern Intel/AMD (x86_64) and ARM (aarch64) CPUs.
+  Fast and Minimal: Written in C with no external dependencies. It uses hardware-accelerated AES instructions when available for improved performance, but it also supports a software fallback on any CPU, including WebAssembly environments.
 
 - **Convenient APIs**
   Functions are provided to encrypt/decrypt in-place (16-byte arrays for addresses) or via string-to-string conversions (e.g., `x.x.x.x` → `y.y.y.y`).
@@ -259,8 +259,7 @@ int main(void) {
 
 ## Limitations and Assumptions
 
-- **Architecture**: Currently targets x86_64 and ARM (aarch64) with hardware AES.
-- **Dependency on AES Hardware**: It relies on AES CPU instructions for performance.
+- **Architecture**: Optimized for x86_64 and ARM (aarch64) with hardware AES, but fully functional on any CPU using a software fallback. WebAssembly is also supported.
 - **Format-Preserving**: Standard encryption is format-preserving at the 16-byte level. However, an original IPv4 may decrypt to an IPv6 format (or vice versa) in string form.
 
 ---
