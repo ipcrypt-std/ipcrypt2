@@ -563,10 +563,11 @@ _mm_sub_epi64(const __m128i a, const __m128i b)
 static inline __m128i
 _mm_cmpeq_epi8(const __m128i a, const __m128i b)
 {
-    __m128i r;
+    __m128i  r;
+    uint64_t optblocker_u8 = untrinsics_optblocker_u8;
     for (int i = 0; i < 16; i++) {
         uint8_t diff = a.b[i] ^ b.b[i];
-        uint8_t t    = ((diff | (uint8_t) (-diff)) >> 5 ^ untrinsics_optblocker_u8) >> 2;
+        uint8_t t    = ((diff | (uint8_t) (-diff)) >> 5 ^ optblocker_u8) >> 2;
         r.b[i]       = (t ^ 1) * 0xFF;
     }
     return r;
@@ -579,20 +580,18 @@ _mm_cmpeq_epi8(const __m128i a, const __m128i b)
 static inline int
 _mm_testz_si128(const __m128i a, const __m128i b)
 {
-    uint64_t x = (a.q[0] & b.q[0]) | (a.q[1] & b.q[1]);
-    return (
-        int) (((((x | (untrinsics_optblocker_u64 ^ -x)) >> 61) ^ untrinsics_optblocker_u64) >> 2) ^
-              1);
+    uint64_t optblocker_u64 = untrinsics_optblocker_u64;
+    uint64_t x              = (a.q[0] & b.q[0]) | (a.q[1] & b.q[1]);
+    return (int) (((((x | (optblocker_u64 ^ -x)) >> 61) ^ optblocker_u64) >> 2) ^ 1);
 }
 
 /* _mm_test_all_ones: Returns 1 if all bits of a are 1, 0 otherwise. */
 static inline int
 _mm_test_all_ones(const __m128i a)
 {
-    uint64_t t = (a.q[0] ^ ~0ULL) | (a.q[1] ^ ~0ULL);
-    return (
-        int) (((((t | (untrinsics_optblocker_u64 ^ -t)) >> 61) ^ untrinsics_optblocker_u64) >> 2) ^
-              1);
+    uint64_t optblocker_u64 = untrinsics_optblocker_u64;
+    uint64_t t              = (a.q[0] ^ ~0ULL) | (a.q[1] ^ ~0ULL);
+    return (int) (((((t | (optblocker_u64 ^ -t)) >> 61) ^ optblocker_u64) >> 2) ^ 1);
 }
 
 #endif /* UNTRINSICS_H */
