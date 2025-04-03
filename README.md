@@ -43,6 +43,7 @@ It supports both IPv4 and IPv6 addresses, and it can optionally preserve the IP 
     - [Non-Deterministic Example](#non-deterministic-example)
   - [Security Considerations](#security-considerations)
   - [Limitations and Assumptions](#limitations-and-assumptions)
+  - [Bindings and Other Implementations](#bindings-and-other-implementations)
 
 ## Getting Started
 
@@ -261,6 +262,10 @@ int main(void) {
 
 - **Architecture**: Optimized for x86_64 and ARM (aarch64) with hardware AES, but fully functional on any CPU using a software fallback. WebAssembly is also supported.
 - **Format-Preserving**: Standard encryption is format-preserving at the 16-byte level. However, an original IPv4 may decrypt to an IPv6 format (or vice versa) in string form.
+
+## Bindings and Other Implementations
+
+Rust bindings for `ipcrypt2` are available, enabling Rust developers to easily integrate and utilize the library. You can find them at [`rust-ipcrypt2`](https://crates.io/crates/ipcrypt2).
 
 ---
 
