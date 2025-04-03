@@ -81,8 +81,8 @@ untrinsics_sbox(const uint8_t x)
 
     for (int i = 0; i < 256; i++) {
         uint32_t diff = (uint32_t) (i ^ x);
-        uint32_t mask = ((((diff - 1) >> 29) ^ optblocker_u32) >> 2) * 0xff;
-        result |= UNTRINSICS_SBOX[i] & (uint8_t) mask;
+        uint32_t mask = (((diff - 1) >> 29) ^ optblocker_u32) >> 2;
+        result |= UNTRINSICS_SBOX[i] & -(uint8_t) mask;
     }
     return result;
 }
@@ -95,8 +95,8 @@ untrinsics_inv_sbox(const uint8_t x)
 
     for (int i = 0; i < 256; i++) {
         uint32_t diff = (uint32_t) (i ^ x);
-        uint32_t mask = ((((diff - 1) >> 29) ^ optblocker_u32) >> 2) * 0xff;
-        result |= UNTRINSICS_INV_SBOX[i] & (uint8_t) mask;
+        uint32_t mask = (((diff - 1) >> 29) ^ optblocker_u32) >> 2;
+        result |= UNTRINSICS_INV_SBOX[i] & -(uint8_t) mask;
     }
     return result;
 }
@@ -568,7 +568,7 @@ _mm_cmpeq_epi8(const __m128i a, const __m128i b)
     for (int i = 0; i < 16; i++) {
         uint8_t diff = a.b[i] ^ b.b[i];
         uint8_t t    = ((diff | (uint8_t) (-diff)) >> 5 ^ optblocker_u8) >> 2;
-        r.b[i]       = (t ^ 1) * 0xFF;
+        r.b[i]       = -(t ^ 1);
     }
     return r;
 }
