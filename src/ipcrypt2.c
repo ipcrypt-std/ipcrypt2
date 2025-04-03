@@ -23,7 +23,6 @@
  * - Ensure keys are secret and tweak values are random or unique per encryption.
  */
 
-#include <errno.h>
 #include <stdint.h>
 #include <string.h>
 
