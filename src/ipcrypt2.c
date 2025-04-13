@@ -275,8 +275,8 @@ typedef struct AesState {
  * NDXState holds the expanded tweak round keys and encryption round keys for encryption/decryption.
  */
 typedef struct NDXState {
-    BlockVec tkeys[1 + ROUNDS];
-    BlockVec rkeys[1 + ROUNDS];
+    KeySchedule tkeys;
+    KeySchedule rkeys;
 } NDXState;
 
 /**
@@ -284,11 +284,10 @@ typedef struct NDXState {
  * st: the AesState structure to be populated.
  * key: a 16-byte AES key.
  */
-static void __vectorcall expand_key(AesState *st, const unsigned char key[IPCRYPT_KEYBYTES])
+static void __vectorcall expand_key(KeySchedule rkeys, const unsigned char key[IPCRYPT_KEYBYTES])
 {
-    BlockVec *rkeys = st->rkeys;
-    BlockVec  t, s;
-    size_t    i = 0;
+    BlockVec t, s;
+    size_t   i = 0;
 
 #define EXPAND_KEY(RC)                        \
     rkeys[i++] = t;                           \
@@ -298,7 +297,7 @@ static void __vectorcall expand_key(AesState *st, const unsigned char key[IPCRYP
     t          = XOR128(t, SHUFFLE32x4(s, 3, 3, 3, 3));
 
     // Load the initial 128-bit key from memory.
-    t = LOAD128(&key[0]);
+    t = LOAD128(key);
     // Repeatedly generate the next round key.
     EXPAND_KEY(0x01);
     EXPAND_KEY(0x02);
@@ -462,7 +461,7 @@ aes_xex_tweak(const NDXState *st, const uint8_t tweak[IPCRYPT_NDX_TWEAKBYTES])
     tt = XOR128(tt, tkeys[ROUNDS]);
 #else
     // x86_64 path.
-    tt = XOR128(LOAD128(x), tkeys[0]);
+    tt = XOR128(LOAD128(tweak), tkeys[0]);
     for (i = 1; i < ROUNDS; i++) {
         tt = AES_ENCRYPT(tt, tkeys[i]);
     }
@@ -683,7 +682,7 @@ ipcrypt_init(IPCrypt *ipcrypt, const uint8_t key[IPCRYPT_KEYBYTES])
 {
     AesState st;
 
-    expand_key(&st, key);
+    expand_key(st.rkeys, key);
     COMPILER_ASSERT(sizeof ipcrypt->opaque >= sizeof st);
     memcpy(ipcrypt->opaque, &st, sizeof st);
 }

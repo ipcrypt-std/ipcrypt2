@@ -37,8 +37,9 @@ It supports both IPv4 and IPv6 addresses, and it can optionally preserve the IP 
     - [2. Initialization and Deinitialization](#2-initialization-and-deinitialization)
     - [3. Format-Preserving Encryption / Decryption](#3-format-preserving-encryption--decryption)
     - [4. Non-Deterministic Encryption / Decryption](#4-non-deterministic-encryption--decryption)
-    - [5. Non-Deterministic Encryption / Decryption with Extended Tweaks](#4-non-deterministic-encryption--decryption-with-extended-tweaks)
-    - [6. Helper Functions](#5-helper-functions)
+      - [With 8 Byte Tweaks (ND Mode)](#with-8-byte-tweaks-nd-mode)
+      - [With 16 Byte Tweaks (NDX Mode)](#with-16-byte-tweaks-ndx-mode)
+    - [5. Helper Functions](#5-helper-functions)
   - [Examples](#examples)
     - [Format-Preserving Example](#format-preserving-example)
     - [Non-Deterministic Example](#non-deterministic-example)
@@ -127,6 +128,8 @@ size_t ipcrypt_decrypt_ip_str(const IPCrypt *ipcrypt,
 
 ### 4. Non-Deterministic Encryption / Decryption
 
+#### With 8 Byte Tweaks (ND Mode)
+
 ```c
 void ipcrypt_nd_encrypt_ip16(const IPCrypt *ipcrypt,
                              uint8_t ndip[IPCRYPT_NDIP_BYTES],
@@ -151,9 +154,16 @@ size_t ipcrypt_nd_decrypt_ip_str(const IPCrypt *ipcrypt,
 - Even if you encrypt the same IP multiple times with the same key, encrypted values will not be unique, which helps mitigate traffic analysis or repeated-pattern attacks.
 - This mode is _not_ format-preserving: the output is 24 bytes (or 48 hex characters).
 
-### 5. Non-Deterministic Encryption / Decryption with Extended Tweaks
+#### With 16 Byte Tweaks (NDX Mode)
 
 ```c
+typedef struct IPCryptNDX { ... } IPCryptNDX;
+
+void ipcrypt_ndx_init(IPCryptNDX *ipcrypt,
+                      const uint8_t key[IPCRYPT_NDX_KEYBYTES]);
+
+void ipcrypt_ndx_deinit(IPCryptNDX *ipcrypt);
+
 void ipcrypt_ndx_encrypt_ip16(const IPCryptNDX *ipcrypt,
                               uint8_t ndip[IPCRYPT_NDX_NDIP_BYTES],
                               const uint8_t ip16[16],
@@ -173,13 +183,13 @@ size_t ipcrypt_ndx_decrypt_ip_str(const IPCryptNDX *ipcrypt,
                                   const char *encrypted_ip_str);
 ```
 
-- The **NDX non-deterministic** mode takes a random 16-byte tweak (`random[IPCRYPT_NDK_TWEAKBYTES]`).
+- The **NDX non-deterministic** mode takes a random 16-byte tweak (`random[IPCRYPT_NDK_TWEAKBYTES]`) and a 32-byte key (`IPCRYPT_NDX_KEYBYTES`).
 - Even if you encrypt the same IP multiple times with the same key, encrypted values will not be unique, which helps mitigate traffic analysis or repeated-pattern attacks.
 - This mode is _not_ format-preserving: the output is 32 bytes (or 64 hex characters).
 
-The NDX mode is similar to the ND mode, but larger tweaks make it more difficult to detect repeated IP addresses.
+The NDX mode is similar to the ND mode, but larger tweaks make it even more difficult to detect repeated IP addresses. The downside is that it runs at half the speed of ND mode and produces larger ciphertexts.
 
-### 6. Helper Functions
+### 5. Helper Functions
 
 ```c
 int ipcrypt_str_to_ip16(uint8_t ip16[16], const char *ip_str);
