@@ -23,6 +23,34 @@ extern "C" {
 /** Size of the hexadecimal output for non-deterministic encryption, including null terminator. */
 #define IPCRYPT_NDIP_STR_BYTES (48U + 1U)
 
+/** Size of the NDX encryption key, in bytes (256 bits). */
+#define IPCRYPT_NDX_KEYBYTES 32U
+
+/** Size of the NDX cryption tweak, in bytes (128 bits). */
+#define IPCRYPT_NDX_TWEAKBYTES 16U
+
+/** Size of the binary output for NDX encryption. */
+#define IPCRYPT_NDX_NDIP_BYTES 32U
+
+/** Size of the hexadecimal output for NDX encryption, including null terminator. */
+#define IPCRYPT_NDX_NDIP_STR_BYTES (64U + 1U)
+
+/* -------- Utility functions -------- */
+
+/**
+ * Convert an IP address string (IPv4 or IPv6) to a 16-byte binary representation.
+ */
+int ipcrypt_str_to_ip16(uint8_t ip16[16], const char *ip_str);
+
+/**
+ * Convert a 16-byte binary IP address into a string.
+ *
+ * Returns the length of the resulting string on success, or 0 on error.
+ */
+size_t ipcrypt_ip16_to_str(char ip_str[IPCRYPT_MAX_IP_STR_BYTES], const uint8_t ip16[16]);
+
+/* -------- IP encryption -------- */
+
 /**
  * Encryption context structure.
  * Must be initialized with ipcrypt_init() before use.
@@ -113,17 +141,70 @@ size_t ipcrypt_nd_decrypt_ip_str(const IPCrypt *ipcrypt,
                                  char           ip_str[IPCRYPT_MAX_IP_STR_BYTES],
                                  const char    *encrypted_ip_str);
 
-/**
- * Convert an IP address string (IPv4 or IPv6) to a 16-byte binary representation.
- */
-int ipcrypt_str_to_ip16(uint8_t ip16[16], const char *ip_str);
+/* -------- IP non-deterministic encryption with a 16-byte tweak -------- */
 
 /**
- * Convert a 16-byte binary IP address into a string.
+ * Encryption context structure for NDX mode (non-deterministic encryption with 16 bytes of tweak
+ * and a 32-byte secret key).
  *
- * Returns the length of the resulting string on success, or 0 on error.
+ * Must be initialized with ipcrypt_ndx_init() before use.
  */
-size_t ipcrypt_ip16_to_str(char ip_str[IPCRYPT_MAX_IP_STR_BYTES], const uint8_t ip16[16]);
+typedef struct IPCryptNDX {
+    uint8_t opaque[16U * 11 * 2];
+} IPCryptNDX;
+
+/**
+ * Initialize the IPCryptNDX context with a 32-byte secret key.
+ *
+ * The key must:
+ * - Be exactly IPCRYPT_NDX_KEYBYTES bytes.
+ * - Be secret and randomly generated.
+ */
+void ipcrypt_ndx_init(IPCryptNDX *ipcrypt, const uint8_t key[IPCRYPT_NDX_KEYBYTES]);
+
+/**
+ * Securely clear and deinitialize the IPCryptNDX context.
+ *
+ * Optional: No heap allocations are used, but this ensures secrets are wiped from memory.
+ */
+void ipcrypt_ndx_deinit(IPCryptNDX *ipcrypt);
+
+/**
+ * Non-deterministically encrypt a 16-byte IP address using an 16-byte tweak.
+ *
+ * Output is written to ndip. `random` must be set to a secure 16-byte random value.
+ */
+void ipcrypt_ndx_encrypt_ip16(const IPCryptNDX *ipcrypt, uint8_t ndip[IPCRYPT_NDX_NDIP_BYTES],
+                              const uint8_t ip16[16], const uint8_t random[IPCRYPT_NDX_TWEAKBYTES]);
+
+/**
+ * Decrypt a non-deterministically encrypted 16-byte IP address, previously encrypted with
+ * `ipcrypt_ndx_encrypt_ip16`.333333
+ *
+ * Input is ndip, and output is written to ip16.
+ */
+void ipcrypt_ndx_decrypt_ip16(const IPCryptNDX *ipcrypt, uint8_t ip16[16],
+                              const uint8_t ndip[IPCRYPT_NDX_NDIP_BYTES]);
+
+/**
+ * Encrypt an IP address string non-deterministically.
+ *
+ * Output is a hex-encoded zero-terminated string written to encrypted_ip_str.
+ *`random` must be an 16-byte random value.
+ *
+ * Returns the output length, without the null terminator.
+ */
+size_t ipcrypt_ndx_encrypt_ip_str(const IPCryptNDX *ipcrypt,
+                                  char              encrypted_ip_str[IPCRYPT_NDX_NDIP_STR_BYTES],
+                                  const char *ip_str, const uint8_t random[IPCRYPT_NDX_TWEAKBYTES]);
+
+/**
+ * Decrypt a hex-encoded IP address string from non-deterministic mode.
+ *
+ * Output is written to ip_str. Returns the output length on success, or 0 on error.
+ */
+size_t ipcrypt_ndx_decrypt_ip_str(const IPCryptNDX *ipcrypt, char ip_str[IPCRYPT_MAX_IP_STR_BYTES],
+                                  const char *encrypted_ip_str);
 
 #ifdef __cplusplus
 }
