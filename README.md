@@ -37,7 +37,8 @@ It supports both IPv4 and IPv6 addresses, and it can optionally preserve the IP 
     - [2. Initialization and Deinitialization](#2-initialization-and-deinitialization)
     - [3. Format-Preserving Encryption / Decryption](#3-format-preserving-encryption--decryption)
     - [4. Non-Deterministic Encryption / Decryption](#4-non-deterministic-encryption--decryption)
-    - [5. Helper Functions](#5-helper-functions)
+    - [5. Non-Deterministic Encryption / Decryption with Extended Tweaks](#4-non-deterministic-encryption--decryption-with-extended-tweaks)
+    - [6. Helper Functions](#5-helper-functions)
   - [Examples](#examples)
     - [Format-Preserving Example](#format-preserving-example)
     - [Non-Deterministic Example](#non-deterministic-example)
@@ -46,7 +47,7 @@ It supports both IPv4 and IPv6 addresses, and it can optionally preserve the IP 
 
 ## Getting Started
 
-1. **Download/Clone** this repository.  
+1. **Download/Clone** this repository.
 2. **Include** the library’s files (`ipcrypt2.c` and `ipcrypt2.h`) in your project.
 3. **Build** and link them with your application, either via a traditional compiler or through Zig.
 
@@ -145,11 +146,39 @@ size_t ipcrypt_nd_decrypt_ip_str(const IPCrypt *ipcrypt,
                                  const char *encrypted_ip_str);
 ```
 
-- **Non-deterministic** mode takes a random 8-byte tweak (`random[IPCRYPT_TWEAKBYTES]`).  
+- **Non-deterministic** mode takes a random 8-byte tweak (`random[IPCRYPT_TWEAKBYTES]`).
 - Even if you encrypt the same IP multiple times with the same key, encrypted values will not be unique, which helps mitigate traffic analysis or repeated-pattern attacks.
-- This mode is *not* format-preserving: the output is 24 bytes (or 48 hex characters).
+- This mode is _not_ format-preserving: the output is 24 bytes (or 48 hex characters).
 
-### 5. Helper Functions
+### 5. Non-Deterministic Encryption / Decryption with Extended Tweaks
+
+```c
+void ipcrypt_ndx_encrypt_ip16(const IPCryptNDX *ipcrypt,
+                              uint8_t ndip[IPCRYPT_NDX_NDIP_BYTES],
+                              const uint8_t ip16[16],
+                              const uint8_t random[IPCRYPT_NDX_TWEAKBYTES]);
+
+void ipcrypt_ndx_decrypt_ip16(const IPCryptNDX *ipcrypt,
+                              uint8_t ip16[16],
+                              const uint8_t ndip[IPCRYPT_NDX_NDIP_BYTES]);
+
+void ipcrypt_ndx_encrypt_ip_str(const IPCryptNDX *ipcrypt,
+                                char encrypted_ip_str[IPCRYPT_NDX_NDIP_STR_BYTES],
+                                const char *ip_str,
+                                const uint8_t random[IPCRYPT_NDX_TWEAKBYTES]);
+
+size_t ipcrypt_ndx_decrypt_ip_str(const IPCryptNDX *ipcrypt,
+                                  char ip_str[IPCRYPT_MAX_IP_STR_BYTES],
+                                  const char *encrypted_ip_str);
+```
+
+- The **NDX non-deterministic** mode takes a random 16-byte tweak (`random[IPCRYPT_NDK_TWEAKBYTES]`).
+- Even if you encrypt the same IP multiple times with the same key, encrypted values will not be unique, which helps mitigate traffic analysis or repeated-pattern attacks.
+- This mode is _not_ format-preserving: the output is 32 bytes (or 64 hex characters).
+
+The NDX mode is similar to the ND mode, but larger tweaks make it more difficult to detect repeated IP addresses.
+
+### 6. Helper Functions
 
 ```c
 int ipcrypt_str_to_ip16(uint8_t ip16[16], const char *ip_str);
@@ -172,7 +201,7 @@ Below are two illustrative examples of using IPCrypt2 in C.
 int main(void) {
     // A 16-byte AES key (for demonstration only; keep yours secret!)
     const uint8_t key[IPCRYPT_KEYBYTES] = {
-        0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 
+        0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
         0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F
     };
 
@@ -245,23 +274,27 @@ int main(void) {
 
 ## Security Considerations
 
-1. **Key Management**  
+1. **Key Management**
+
    - You must provide a secure 16-byte AES key. Protect it and ensure it remains secret.
 
-2. **Tweak Randomness** (for non-deterministic mode)  
-   - The 8-byte tweak does not need to be secret; however, it should be random or unique for each encryption to prevent predictable patterns. While collisions may become become a statistical concern after approximately 2^32 encryptions with the same key and IP address, they do not directly expose the IP address without the key.
+2. **Tweak Randomness** (for non-deterministic modes)
 
-3. **IP Format Preservation**  
-   - In “standard” mode, the library encrypts a 16-byte IP buffer into another 16-byte buffer. After encryption, it *may become a valid IPv6 address even if the original address was IPv4*, or vice versa.  
+   - **ND mode**: the 8-byte tweak does not need to be secret; however, it should be random or unique for each encryption to prevent predictable patterns. While collisions may become become a statistical concern after approximately 2^32 encryptions of the same IP address with the same key, they do not directly expose the IP address without the key.
+   - **NDX mode**: the 16-byte tweak does not need to be secret; however, it should be random or unique for each encryption to prevent predictable patterns. Collisions become a statistical concern after approximately 2^64 encryptions of the same IP address with the same key. They only reveal the fact that an IP address was observed multiple times, but not the IP address itself.
 
-4. **Not a General Purpose Encryption Library**  
+3. **IP Format Preservation**
+
+   - In “standard” mode, the library encrypts a 16-byte IP buffer into another 16-byte buffer. After encryption, it _may become a valid IPv6 address even if the original address was IPv4_, or vice versa.
+
+4. **Not a General Purpose Encryption Library**
    - This library is specialized for IP address encryption and may not be suitable for arbitrary data encryption.
 
 ## Limitations and Assumptions
 
-- **Architecture**: Currently targets x86_64 and ARM (aarch64) with hardware AES.  
-- **Dependency on AES Hardware**: It relies heavily on AES CPU instructions for performance.  
-- **Format-Preserving**: Standard encryption is format-preserving at the 16-byte level. However, an original IPv4 may decrypt to an IPv6 format (or vice versa) in string form.  
+- **Architecture**: Currently targets x86_64 and ARM (aarch64) with hardware AES.
+- **Dependency on AES Hardware**: It relies heavily on AES CPU instructions for performance.
+- **Format-Preserving**: Standard encryption is format-preserving at the 16-byte level. However, an original IPv4 may decrypt to an IPv6 format (or vice versa) in string form.
 
 ---
 
