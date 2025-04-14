@@ -4,6 +4,8 @@
 
 It supports both IPv4 and IPv6 addresses, and it can optionally preserve the IP format (so an IP address is still recognized as an IP address after encryption). `ipcrypt2` also provides a non-deterministic encryption mode, where encrypting the same address multiple times will yield different ciphertexts.
 
+This is an implementation of the [Methods for IP Address Encryption and Obfuscation](https://jedisct1.github.io/draft-denis-ipcrypt/draft-denis-ipcrypt.html) draft.
+
 ## Features
 
 - **IPv4 and IPv6 support**
