@@ -265,7 +265,8 @@ int main(void) {
 
 ## Bindings and Other Implementations
 
-Rust bindings for `ipcrypt2` are available, enabling Rust developers to easily integrate and utilize the library. You can find them at [`rust-ipcrypt2`](https://crates.io/crates/ipcrypt2).
+- Rust bindings for `ipcrypt2` are available, enabling Rust developers to easily integrate and utilize the library. You can find them at [`rust-ipcrypt2`](https://crates.io/crates/ipcrypt2).
+- An [implementation in JavaScript](https://www.npmjs.com/package/ipcrypt) is available on NPM.
 
 ---
 
