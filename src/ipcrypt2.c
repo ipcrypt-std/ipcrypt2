@@ -2,7 +2,7 @@
  * IPCrypt2: Lightweight IP Address Encryption Library
  *
  * IPCrypt2 provides simple and efficient encryption and decryption of IP addresses (IPv4 & IPv6).
- * Designed for privacy-preserving network applications, it supports two encryption modes:
+ * Designed for privacy-preserving network applications, it supports three encryption modes:
  *
  * 1. **Format-Preserving AES Encryption**
  *    - Transforms an IP address into another valid IP address of the same size.
@@ -11,6 +11,11 @@
  * 2. **Non-Deterministic AES Encryption (KIASU-BC)**
  *    - Introduces a 64-bit tweak, producing different ciphertexts for the same IP.
  *    - Useful when repeated IPs must remain unlinkable. This mode is not format-preserving.
+ *
+ * 3. **NDX Mode: Non-Deterministic AES Encryption with Extended Tweaks (AES-XTX)**
+ *    - Introduces a 128-bit tweak, producing different ciphertexts for the same IP.
+ *    - Useful when repeated IPs must remain unlinkable. This mode is not format-preserving.
+ *    - Higher usage limits than KIASU-BC, but half the performance and larger ciphertexts.
  *
  * Additional Features:
  * - Built-in string/binary IP conversion helpers.
@@ -267,15 +272,22 @@ typedef struct AesState {
 } AesState;
 
 /**
+ * NDXState holds the expanded tweak round keys and encryption round keys for encryption/decryption.
+ */
+typedef struct NDXState {
+    KeySchedule tkeys;
+    KeySchedule rkeys;
+} NDXState;
+
+/**
  * expand_key expands a 16-byte AES key into a full set of round keys.
  * st: the AesState structure to be populated.
  * key: a 16-byte AES key.
  */
-static void __vectorcall expand_key(AesState *st, const unsigned char key[IPCRYPT_KEYBYTES])
+static void __vectorcall expand_key(KeySchedule rkeys, const unsigned char key[IPCRYPT_KEYBYTES])
 {
-    BlockVec *rkeys = st->rkeys;
-    BlockVec  t, s;
-    size_t    i = 0;
+    BlockVec t, s;
+    size_t   i = 0;
 
 #define EXPAND_KEY(RC)                        \
     rkeys[i++] = t;                           \
@@ -285,7 +297,7 @@ static void __vectorcall expand_key(AesState *st, const unsigned char key[IPCRYP
     t          = XOR128(t, SHUFFLE32x4(s, 3, 3, 3, 3));
 
     // Load the initial 128-bit key from memory.
-    t = LOAD128(&key[0]);
+    t = LOAD128(key);
     // Repeatedly generate the next round key.
     EXPAND_KEY(0x01);
     EXPAND_KEY(0x02);
@@ -426,6 +438,91 @@ aes_decrypt_with_tweak(uint8_t x[16], const AesState *st, const uint8_t tweak[IP
         t = AES_DECRYPT(t, XOR128(tweak_block_inv, rkeys_inv[i]));
     }
     t = AES_DECRYPTLAST(t, XOR128(tweak_block, rkeys[0]));
+#endif
+    STORE128(x, t);
+}
+
+static BlockVec
+aes_xex_tweak(const NDXState *st, const uint8_t tweak[IPCRYPT_NDX_TWEAKBYTES])
+{
+    const BlockVec *tkeys = st->tkeys;
+    BlockVec        tt;
+    size_t          i;
+
+    COMPILER_ASSERT(IPCRYPT_NDX_TWEAKBYTES == 16);
+
+#ifdef AES_XENCRYPT
+    // AArch64 path.
+    tt = AES_XENCRYPT(LOAD128(tweak), tkeys[0]);
+    for (i = 1; i < ROUNDS - 1; i++) {
+        tt = AES_XENCRYPT(tt, tkeys[i]);
+    }
+    tt = AES_XENCRYPTLAST(tt, tkeys[i]);
+    tt = XOR128(tt, tkeys[ROUNDS]);
+#else
+    // x86_64 path.
+    tt = XOR128(LOAD128(tweak), tkeys[0]);
+    for (i = 1; i < ROUNDS; i++) {
+        tt = AES_ENCRYPT(tt, tkeys[i]);
+    }
+    tt = AES_ENCRYPTLAST(tt, tkeys[ROUNDS]);
+#endif
+    return tt;
+}
+
+static void
+aes_xex_encrypt(uint8_t x[16], const NDXState *st, const uint8_t tweak[IPCRYPT_NDX_TWEAKBYTES])
+{
+    const BlockVec  tt    = aes_xex_tweak(st, tweak);
+    const BlockVec *rkeys = st->rkeys;
+    BlockVec        t;
+    size_t          i;
+
+    COMPILER_ASSERT(IPCRYPT_NDX_TWEAKBYTES == 16);
+
+#ifdef AES_XENCRYPT
+    // For AArch64 with AES_XENCRYPT macros.
+    t = AES_XENCRYPT(XOR128(LOAD128(x), tt), rkeys[0]);
+    for (i = 1; i < ROUNDS - 1; i++) {
+        t = AES_XENCRYPT(t, rkeys[i]);
+    }
+    t = AES_XENCRYPTLAST(t, rkeys[i]);
+    t = XOR128_3(t, rkeys[ROUNDS], tt);
+#else
+    // For x86_64 or a fallback.
+    t = XOR128(XOR128(LOAD128(x), tt), rkeys[0]);
+    for (i = 1; i < ROUNDS; i++) {
+        t = AES_ENCRYPT(t, rkeys[i]);
+    }
+    t = AES_ENCRYPTLAST(t, XOR128(rkeys[ROUNDS], tt));
+#endif
+    STORE128(x, t);
+}
+
+static void
+aes_ndx_decrypt(uint8_t x[16], const NDXState *st, const uint8_t tweak[IPCRYPT_NDX_TWEAKBYTES])
+{
+
+    const BlockVec  tt    = aes_xex_tweak(st, tweak);
+    const BlockVec *rkeys = st->rkeys;
+    BlockVec        t;
+    size_t          i;
+
+#ifdef AES_XENCRYPT
+    // AArch64 path with AES_XDECRYPT.
+    t = AES_XDECRYPT(XOR128(LOAD128(x), tt), rkeys[ROUNDS]);
+    for (i = ROUNDS - 1; i > 1; i--) {
+        t = AES_XDECRYPT(t, RKINVERT(rkeys[i]));
+    }
+    t = AES_XDECRYPTLAST(t, RKINVERT(rkeys[1]));
+    t = XOR128_3(t, rkeys[0], tt);
+#else
+    // x86_64 path using AES_DECRYPT.
+    t = XOR128(XOR128(LOAD128(x), tt), rkeys[ROUNDS]);
+    for (i = ROUNDS - 1; i > 0; i--) {
+        t = AES_DECRYPT(t, RKINVERT(rkeys[i]));
+    }
+    t = AES_DECRYPTLAST(t, XOR128(rkeys[0], tt));
 #endif
     STORE128(x, t);
 }
@@ -585,7 +682,7 @@ ipcrypt_init(IPCrypt *ipcrypt, const uint8_t key[IPCRYPT_KEYBYTES])
 {
     AesState st;
 
-    expand_key(&st, key);
+    expand_key(st.rkeys, key);
     COMPILER_ASSERT(sizeof ipcrypt->opaque >= sizeof st);
     memcpy(ipcrypt->opaque, &st, sizeof st);
 }
@@ -595,6 +692,36 @@ ipcrypt_init(IPCrypt *ipcrypt, const uint8_t key[IPCRYPT_KEYBYTES])
  */
 void
 ipcrypt_deinit(IPCrypt *ipcrypt)
+{
+#ifdef __STDC_LIB_EXT1__
+    memset_s(ipcrypt, sizeof *ipcrypt, 0, sizeof *ipcrypt);
+#else
+    memset(ipcrypt, 0, sizeof *ipcrypt);
+    // Compiler barrier to prevent optimizations from removing memset.
+    __asm__ __volatile__("" : : "r"(ipcrypt) : "memory");
+#endif
+}
+
+/**
+ * ipcrypt_init initializes an IPCrypt context with a 16-byte key.
+ * Expands the key into round keys and stores them in ipcrypt->opaque.
+ */
+void
+ipcrypt_ndx_init(IPCryptNDX *ipcrypt, const uint8_t key[IPCRYPT_NDX_KEYBYTES])
+{
+    NDXState st;
+
+    expand_key(st.tkeys, key + 16);
+    expand_key(st.rkeys, key);
+    COMPILER_ASSERT(sizeof ipcrypt->opaque >= sizeof st);
+    memcpy(ipcrypt->opaque, &st, sizeof st);
+}
+
+/**
+ * ipcrypt_deinit clears the IPCrypt context to wipe sensitive data from memory.
+ */
+void
+ipcrypt_ndx_deinit(IPCryptNDX *ipcrypt)
 {
 #ifdef __STDC_LIB_EXT1__
     memset_s(ipcrypt, sizeof *ipcrypt, 0, sizeof *ipcrypt);
@@ -741,6 +868,91 @@ ipcrypt_nd_decrypt_ip_str(const IPCrypt *ipcrypt, char ip_str[IPCRYPT_MAX_IP_STR
     }
     // Decrypt the IP.
     ipcrypt_nd_decrypt_ip16(ipcrypt, ip16, ndip);
+    // Convert binary IP to string.
+    return ipcrypt_ip16_to_str(ip_str, ip16);
+}
+
+/**
+ * ipcrypt_ndx_encrypt_ip16 performs non-deterministic encryption of a 16-byte IP.
+ * A random 16-byte tweak (random) must be provided.
+ * Output is 32 bytes: the tweak + the encrypted IP.
+ */
+void
+ipcrypt_ndx_encrypt_ip16(const IPCryptNDX *ipcrypt, uint8_t ndip[IPCRYPT_NDX_NDIP_BYTES],
+                         const uint8_t ip16[16], const uint8_t random[IPCRYPT_NDX_TWEAKBYTES])
+{
+    NDXState st;
+
+    COMPILER_ASSERT(IPCRYPT_NDX_NDIP_BYTES == 16 + IPCRYPT_NDX_TWEAKBYTES);
+    memcpy(&st, ipcrypt->opaque, sizeof st);
+    // Copy the tweak into the first 8 bytes.
+    memcpy(ndip, random, IPCRYPT_NDX_TWEAKBYTES);
+    // Copy the IP into the next 16 bytes.
+    memcpy(ndip + IPCRYPT_NDX_TWEAKBYTES, ip16, 16);
+    // Encrypt the IP portion with the tweak.
+    aes_xex_encrypt(ndip + IPCRYPT_NDX_TWEAKBYTES, &st, random);
+}
+
+/**
+ * ipcrypt_ndx_decrypt_ip16 decrypts a 32 byte (tweak + IP) buffer produced by
+ * ipcrypt_ndx_encrypt_ip16. The original IP is restored in ip16.
+ */
+void
+ipcrypt_ndx_decrypt_ip16(const IPCryptNDX *ipcrypt, uint8_t ip16[16],
+                         const uint8_t ndip[IPCRYPT_NDX_NDIP_BYTES])
+{
+    NDXState st;
+
+    COMPILER_ASSERT(IPCRYPT_NDX_NDIP_BYTES == 16 + IPCRYPT_NDX_TWEAKBYTES);
+    memcpy(&st, ipcrypt->opaque, sizeof st);
+    // Copy the IP portion from ndip.
+    memcpy(ip16, ndip + IPCRYPT_NDX_TWEAKBYTES, 16);
+    // Decrypt using the tweak from the first 16 bytes.
+    aes_ndx_decrypt(ip16, &st, ndip);
+}
+
+/**
+ * ipcrypt_ndx_encrypt_ip_str encrypts an IP address string in NDX mode.
+ * The output is a hex-encoded string of length IPCRYPT_NDIP_STR_BYTES (64 hex chars + null
+ * terminator). random must be an 8-byte random value.
+ */
+size_t
+ipcrypt_ndx_encrypt_ip_str(const IPCryptNDX *ipcrypt,
+                           char encrypted_ip_str[IPCRYPT_NDX_NDIP_STR_BYTES], const char *ip_str,
+                           const uint8_t random[IPCRYPT_NDX_TWEAKBYTES])
+{
+    uint8_t ip16[16];
+    uint8_t ndip[IPCRYPT_NDX_NDIP_BYTES];
+
+    COMPILER_ASSERT(IPCRYPT_NDX_NDIP_STR_BYTES == IPCRYPT_NDX_NDIP_BYTES * 2 + 1);
+    // Convert to 16-byte IP.
+    ipcrypt_str_to_ip16(ip16, ip_str);
+    // Perform non-deterministic encryption.
+    ipcrypt_ndx_encrypt_ip16(ipcrypt, ndip, ip16, random);
+    // Convert the 32-byte ndip to a hex string.
+    bin2hex(encrypted_ip_str, IPCRYPT_NDX_NDIP_STR_BYTES, ndip, IPCRYPT_NDX_NDIP_BYTES);
+
+    return IPCRYPT_NDX_NDIP_STR_BYTES - 1;
+}
+
+/**
+ * ipcrypt_ndx_decrypt_ip_str decrypts a hex-encoded string produced by ipcrypt_ndx_encrypt_ip_str.
+ * The original IP address string is written to ip_str.
+ * Returns the length of the resulting IP string on success, or 0 on error.
+ */
+size_t
+ipcrypt_ndx_decrypt_ip_str(const IPCryptNDX *ipcrypt, char ip_str[IPCRYPT_MAX_IP_STR_BYTES],
+                           const char *encrypted_ip_str)
+{
+    uint8_t ip16[16];
+    uint8_t ndip[IPCRYPT_NDX_NDIP_BYTES];
+    memset(ip_str, 0, IPCRYPT_MAX_IP_STR_BYTES);
+    // Convert the hex string back to a 24-byte buffer.
+    if (hex2bin(ndip, sizeof ndip, encrypted_ip_str, strlen(encrypted_ip_str)) != sizeof ndip) {
+        return 0;
+    }
+    // Decrypt the IP.
+    ipcrypt_ndx_decrypt_ip16(ipcrypt, ip16, ndip);
     // Convert binary IP to string.
     return ipcrypt_ip16_to_str(ip_str, ip16);
 }
