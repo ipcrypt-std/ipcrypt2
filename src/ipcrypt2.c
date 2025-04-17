@@ -23,7 +23,6 @@
  * - Minimal external dependencies; just compile and link.
  *
  * Limitations:
- * - Only works on platforms with AES-NI (x86_64) or ARM Crypto Extensions (aarch64).
  * - Not intended for general-purpose encryption—IP address only.
  * - Ensure keys are secret and tweak values are random or unique per encryption.
  */
