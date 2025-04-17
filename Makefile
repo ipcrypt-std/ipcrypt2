@@ -5,7 +5,7 @@
 CC ?= cc
 AR ?= ar
 RANLIB ?= ranlib
-CFLAGS ?= -O2 -Wall -Wextra
+CFLAGS ?= -O2
 CFLAGS += -I./src/include
 
 # Installation settings
