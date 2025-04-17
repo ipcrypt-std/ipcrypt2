@@ -36,6 +36,7 @@
 #else
 #    include <arpa/inet.h>
 #    include <sys/socket.h>
+#    include <netinet/in.h>
 #endif
 
 #include "include/ipcrypt2.h"
