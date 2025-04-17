@@ -66,10 +66,10 @@ int ipcrypt_sockaddr_to_ip16(uint8_t ip16[16], const struct sockaddr *sa);
  * - For IPv4-mapped IPv6 addresses, an IPv4 socket address is created
  * - For other IPv6 addresses, an IPv6 socket address is created
  *
- * The socket address structure must be large enough to hold either an IPv4
- * or IPv6 address (use sizeof(struct sockaddr_storage) to be safe).
+ * The provided sockaddr_storage structure is guaranteed to be large enough
+ * to hold any socket address type.
  */
-void ipcrypt_ip16_to_sockaddr(struct sockaddr *sa, const uint8_t ip16[16]);
+void ipcrypt_ip16_to_sockaddr(struct sockaddr_storage *sa, const uint8_t ip16[16]);
 
 /* -------- IP encryption -------- */
 

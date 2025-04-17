@@ -707,19 +707,18 @@ ipcrypt_sockaddr_to_ip16(uint8_t ip16[16], const struct sockaddr *sa)
  * - For IPv4-mapped IPv6 addresses, an IPv4 socket address is created
  * - For other IPv6 addresses, an IPv6 socket address is created
  *
- * The socket address structure must be large enough to hold either an IPv4
- * or IPv6 address (use sizeof(struct sockaddr_storage) to be safe).
+ * The provided sockaddr_storage structure is guaranteed to be large enough
+ * to hold any socket address type.
  */
 void
-ipcrypt_ip16_to_sockaddr(struct sockaddr *sa, const uint8_t ip16[16])
+ipcrypt_ip16_to_sockaddr(struct sockaddr_storage *sa, const uint8_t ip16[16])
 {
     const uint8_t ipv4_mapped[12] = { 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff };
 
     memset(sa, 0, sizeof *sa);
     if (memcmp(ip16, ipv4_mapped, sizeof ipv4_mapped) == 0) {
         struct sockaddr_in *s = (struct sockaddr_in *) sa;
-        memset(s, 0, sizeof *s);
-        s->sin_family = AF_INET;
+        s->sin_family         = AF_INET;
         memcpy(&s->sin_addr, ip16 + 12, 4);
 #if defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || \
     defined(__DragonFly__)
@@ -727,8 +726,7 @@ ipcrypt_ip16_to_sockaddr(struct sockaddr *sa, const uint8_t ip16[16])
 #endif
     } else {
         struct sockaddr_in6 *s = (struct sockaddr_in6 *) sa;
-        memset(s, 0, sizeof *s);
-        s->sin6_family = AF_INET6;
+        s->sin6_family         = AF_INET6;
         memcpy(&s->sin6_addr, ip16, 16);
 #if defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || \
     defined(__DragonFly__)
