@@ -8,6 +8,15 @@ extern "C" {
 #include <stddef.h>
 #include <stdint.h>
 
+/* System headers for socket structures */
+#if defined(_WIN32)
+#    include <winsock2.h>
+#else
+#    include <sys/types.h>
+/* <sys/types.h> must be included before <sys/socket.h> */
+#    include <sys/socket.h>
+#endif
+
 /** Size of the AES encryption key, in bytes (128 bits). */
 #define IPCRYPT_KEYBYTES 16U
 
