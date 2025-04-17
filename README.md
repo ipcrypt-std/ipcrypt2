@@ -1,6 +1,6 @@
 # `ipcrypt2`
 
-`ipcrypt2` is a lightweight C library that encrypts (or “obfuscates”) IP addresses for privacy and security purposes.
+`ipcrypt2` is a lightweight C library that encrypts (or "obfuscates") IP addresses for privacy and security purposes.
 
 It supports both IPv4 and IPv6 addresses, and it can optionally preserve the IP format (so an IP address is still recognized as an IP address after encryption). `ipcrypt2` also provides a non-deterministic encryption mode, where encrypting the same address multiple times will yield different ciphertexts.
 
@@ -12,7 +12,7 @@ This is an implementation of the [Methods for IP Address Encryption and Obfuscat
   Works seamlessly with both IP address formats.
 
 - **Format-Preserving Encryption (FPE)**
-  In “standard” mode, an address is encrypted into another valid IP address. This means that consumers of the data (e.g., logs) still see what appears to be an IP address, but without revealing the original address.
+  In "standard" mode, an address is encrypted into another valid IP address. This means that consumers of the data (e.g., logs) still see what appears to be an IP address, but without revealing the original address.
 
 - **Non-Deterministic Encryption**
   Supports non-deterministic encryption using the KIASU-BC and AES-XTX tweakable block ciphers, ensuring that repeated encryptions of the same IP produce different outputs.
@@ -52,7 +52,7 @@ This is an implementation of the [Methods for IP Address Encryption and Obfuscat
 ## Getting Started
 
 1. **Download/Clone** this repository.
-2. **Include** the library’s files (`ipcrypt2.c` and `ipcrypt2.h`) in your project.
+2. **Include** the library's files (`ipcrypt2.c` and `ipcrypt2.h`) in your project.
 3. **Build** and link them with your application, either via a traditional compiler or through Zig.
 
 ## Building with a Traditional C Compiler
@@ -196,9 +196,13 @@ The NDX mode is similar to the ND mode, but larger tweaks make it even more diff
 ```c
 int ipcrypt_str_to_ip16(uint8_t ip16[16], const char *ip_str);
 size_t ipcrypt_ip16_to_str(char ip_str[IPCRYPT_MAX_IP_STR_BYTES], const uint8_t ip16[16]);
+int ipcrypt_sockaddr_to_ip16(uint8_t ip16[16], const struct sockaddr *sa);
+void ipcrypt_ip16_to_sockaddr(struct sockaddr_storage *sa, const uint8_t ip16[16]);
 ```
 
-- Convert between string IP addresses and their 16-byte representation.
+- **`ipcrypt_str_to_ip16`** / **`ipcrypt_ip16_to_str`**: Convert between string IP addresses and their 16-byte representation.
+- **`ipcrypt_sockaddr_to_ip16`**: Convert a socket address structure to a 16-byte binary IP representation. Supports both IPv4 (`AF_INET`) and IPv6 (`AF_INET6`) socket addresses. For IPv4 addresses, they are converted to IPv4-mapped IPv6 format. Returns `0` on success, or `-1` if the address family is not supported.
+- **`ipcrypt_ip16_to_sockaddr`**: Convert a 16-byte binary IP address to a socket address structure. The socket address structure is populated based on the IP format: for IPv4-mapped IPv6 addresses, an IPv4 socket address is created; for other IPv6 addresses, an IPv6 socket address is created. The provided `sockaddr_storage` structure is guaranteed to be large enough to hold any socket address type.
 
 ## Examples
 
@@ -299,7 +303,7 @@ int main(void) {
 
 3. **IP Format Preservation**
 
-   - In “standard” mode, the library encrypts a 16-byte IP buffer into another 16-byte buffer. After encryption, it _may become a valid IPv6 address even if the original address was IPv4_, or vice versa.
+   - In "standard" mode, the library encrypts a 16-byte IP buffer into another 16-byte buffer. After encryption, it _may become a valid IPv6 address even if the original address was IPv4_, or vice versa.
 
 4. **Not a General Purpose Encryption Library**
    - This library is specialized for IP address encryption and may not be suitable for arbitrary data encryption.
@@ -314,6 +318,7 @@ int main(void) {
 - Rust bindings for `ipcrypt2` are available, enabling Rust developers to easily integrate and utilize the library. You can find them at [`rust-ipcrypt2`](https://crates.io/crates/ipcrypt2).
 - An [implementation in JavaScript](https://www.npmjs.com/package/ipcrypt) is available on NPM.
 - An [implementation in Go](https://github.com/jedisct1/go-ipcrypt) is also available.
+- An [implementation in Zig](https://github.com/jedisct1/zig-ipcrypt) is also available.
 
 ---
 
