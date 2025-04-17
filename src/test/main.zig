@@ -250,3 +250,31 @@ test "test vector 3 for ipcrypt-ndx" {
     const encrypted_ip = encrypted_ip_buf[0..encrypted_ip_len];
     try testing.expectEqualSlices(u8, expected, encrypted_ip);
 }
+
+test "socket address conversion" {
+    // Test IPv4-mapped IPv6 address (1.2.3.4)
+    const ipv4_mapped: [16]u8 = .{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 1, 2, 3, 4 };
+
+    // Convert to sockaddr_storage (use a byte array of sufficient size)
+    var sa: [128]u8 = undefined; // 128 bytes is enough for any sockaddr_storage
+    ipcrypt.ipcrypt_ip16_to_sockaddr(@ptrCast(&sa), &ipv4_mapped);
+
+    // Convert back to 16-byte IP
+    var ip16: [16]u8 = undefined;
+    try testing.expectEqual(0, ipcrypt.ipcrypt_sockaddr_to_ip16(&ip16, @ptrCast(&sa)));
+
+    // Verify the result matches the original
+    try testing.expectEqualSlices(u8, &ipv4_mapped, &ip16);
+
+    // Test IPv6 address (2001:db8::1)
+    const ipv6: [16]u8 = .{ 0x20, 0x01, 0x0d, 0xb8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 };
+
+    // Convert to sockaddr_storage
+    ipcrypt.ipcrypt_ip16_to_sockaddr(@ptrCast(&sa), &ipv6);
+
+    // Convert back to 16-byte IP
+    try testing.expectEqual(0, ipcrypt.ipcrypt_sockaddr_to_ip16(&ip16, @ptrCast(&sa)));
+
+    // Verify the result matches the original
+    try testing.expectEqualSlices(u8, &ipv6, &ip16);
+}
