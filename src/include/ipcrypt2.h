@@ -49,6 +49,28 @@ int ipcrypt_str_to_ip16(uint8_t ip16[16], const char *ip_str);
  */
 size_t ipcrypt_ip16_to_str(char ip_str[IPCRYPT_MAX_IP_STR_BYTES], const uint8_t ip16[16]);
 
+/**
+ * Convert a socket address structure to a 16-byte binary IP representation.
+ *
+ * Supports both IPv4 (AF_INET) and IPv6 (AF_INET6) socket addresses.
+ * For IPv4 addresses, they are converted to IPv4-mapped IPv6 format.
+ *
+ * Returns 0 on success, or -1 if the address family is not supported.
+ */
+int ipcrypt_sockaddr_to_ip16(uint8_t ip16[16], const struct sockaddr *sa);
+
+/**
+ * Convert a 16-byte binary IP address to a socket address structure.
+ *
+ * The socket address structure is populated based on the IP format:
+ * - For IPv4-mapped IPv6 addresses, an IPv4 socket address is created
+ * - For other IPv6 addresses, an IPv6 socket address is created
+ *
+ * The socket address structure must be large enough to hold either an IPv4
+ * or IPv6 address (use sizeof(struct sockaddr_storage) to be safe).
+ */
+void ipcrypt_ip16_to_sockaddr(struct sockaddr *sa, const uint8_t ip16[16]);
+
 /* -------- IP encryption -------- */
 
 /**
