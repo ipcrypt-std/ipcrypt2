@@ -53,5 +53,14 @@ uninstall:
 clean:
 	$(RM) $(OBJS) $(LIBNAME)
 
+# Test target
+test check:
+	@if command -v zig >/dev/null 2>&1; then \
+		zig build test; \
+	else \
+		echo "zig not found - skipping tests"; \
+		exit 0; \
+	fi
+
 # Phony targets
-.PHONY: all clean install uninstall 
+.PHONY: all clean install uninstall test check
