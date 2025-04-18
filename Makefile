@@ -23,7 +23,7 @@ SRCS = $(SRC_DIR)/ipcrypt2.c
 OBJS = $(SRCS:.c=.o)
 
 # Library name
-LIBNAME = libipcrypt.a
+LIBNAME = libipcrypt2.a
 
 # Default target
 all: $(LIBNAME)
