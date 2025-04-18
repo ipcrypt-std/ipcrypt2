@@ -80,6 +80,15 @@ int ipcrypt_sockaddr_to_ip16(uint8_t ip16[16], const struct sockaddr *sa);
  */
 void ipcrypt_ip16_to_sockaddr(struct sockaddr_storage *sa, const uint8_t ip16[16]);
 
+/**
+ * Convert a hexadecimal string to a secret key.
+ *
+ * The input string must be exactly 32 or 64 characters long (IPCRYPT_KEYBYTES or
+ * IPCRYPT_NDX_KEYBYTES bytes in hex). Returns 0 on success, or -1 if the input string is invalid or
+ * conversion fails.
+ */
+int ipcrypt_key_from_hex(uint8_t *key, size_t key_len, const char *hex, size_t hex_len);
+
 /* -------- IP encryption -------- */
 
 /**

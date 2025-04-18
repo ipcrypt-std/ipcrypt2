@@ -607,6 +607,25 @@ hex2bin(uint8_t *bin, size_t bin_maxlen, const char *hex, size_t hex_len)
 }
 
 /**
+ * Convert a hexadecimal string to a secret key.
+ *
+ * The input string must be exactly 32 or 64 characters long (IPCRYPT_KEYBYTES or
+ * IPCRYPT_NDX_KEYBYTES bytes in hex). Returns 0 on success, or -1 if the input string is invalid or
+ * conversion fails.
+ */
+int
+ipcrypt_key_from_hex(uint8_t *key, size_t key_len, const char *hex, size_t hex_len)
+{
+    if (hex_len != 2 * IPCRYPT_KEYBYTES && hex_len != 2 * IPCRYPT_NDX_KEYBYTES) {
+        return -1;
+    }
+    if (hex2bin(key, key_len, hex, hex_len) != key_len) {
+        return -1;
+    }
+    return 0;
+}
+
+/**
  * ipcrypt_str_to_ip16 parses an IP address string (IPv4 or IPv6) into a 16-byte buffer ip16.
  * If it detects an IPv4 address, it is stored as an IPv4-mapped IPv6 address.
  * Returns 0 on success, or -1 on failure.

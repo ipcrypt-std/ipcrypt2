@@ -48,12 +48,12 @@ test "ip string non-deterministic encryption and decryption" {
 
 test "binary ip deterministic encryption and decryption" {
     const expected_ip: [16]u8 = .{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
-    var ip = expected_ip;
     const key = "0123456789abcdef";
     var st: ipcrypt.IPCrypt = undefined;
     ipcrypt.ipcrypt_init(&st, key);
     defer ipcrypt.ipcrypt_deinit(&st);
 
+    var ip: [16]u8 = expected_ip;
     ipcrypt.ipcrypt_encrypt_ip16(&st, &ip);
     ipcrypt.ipcrypt_decrypt_ip16(&st, &ip);
     try testing.expectEqualSlices(u8, &expected_ip, &ip);
@@ -257,11 +257,11 @@ test "socket address conversion" {
 
     // Convert to sockaddr_storage (use a byte array of sufficient size)
     var sa: [128]u8 = undefined; // 128 bytes is enough for any sockaddr_storage
-    ipcrypt.ipcrypt_ip16_to_sockaddr(@ptrCast(&sa), &ipv4_mapped);
+    ipcrypt.ipcrypt_ip16_to_sockaddr(@ptrCast(@alignCast(&sa)), &ipv4_mapped);
 
     // Convert back to 16-byte IP
     var ip16: [16]u8 = undefined;
-    try testing.expectEqual(0, ipcrypt.ipcrypt_sockaddr_to_ip16(&ip16, @ptrCast(&sa)));
+    try testing.expectEqual(0, ipcrypt.ipcrypt_sockaddr_to_ip16(&ip16, @ptrCast(@alignCast(&sa))));
 
     // Verify the result matches the original
     try testing.expectEqualSlices(u8, &ipv4_mapped, &ip16);
@@ -270,11 +270,36 @@ test "socket address conversion" {
     const ipv6: [16]u8 = .{ 0x20, 0x01, 0x0d, 0xb8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 };
 
     // Convert to sockaddr_storage
-    ipcrypt.ipcrypt_ip16_to_sockaddr(@ptrCast(&sa), &ipv6);
+    ipcrypt.ipcrypt_ip16_to_sockaddr(@ptrCast(@alignCast(&sa)), &ipv6);
 
     // Convert back to 16-byte IP
-    try testing.expectEqual(0, ipcrypt.ipcrypt_sockaddr_to_ip16(&ip16, @ptrCast(&sa)));
+    try testing.expectEqual(0, ipcrypt.ipcrypt_sockaddr_to_ip16(&ip16, @ptrCast(@alignCast(&sa))));
 
     // Verify the result matches the original
     try testing.expectEqualSlices(u8, &ipv6, &ip16);
+}
+
+test "key from hex conversion" {
+    // Test valid 16-byte key
+    const hex16 = "0123456789abcdef0123456789abcdef";
+    var key16: [16]u8 = undefined;
+    try testing.expectEqual(0, ipcrypt.ipcrypt_key_from_hex(&key16, key16.len, hex16, hex16.len));
+    const expected_key16: [16]u8 = .{ 0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef };
+    try testing.expectEqualSlices(u8, &expected_key16, &key16);
+
+    // Test valid 32-byte key
+    const hex32 = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+    var key32: [32]u8 = undefined;
+    try testing.expectEqual(0, ipcrypt.ipcrypt_key_from_hex(&key32, key32.len, hex32, hex32.len));
+    const expected_key32: [32]u8 = .{ 0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef };
+    try testing.expectEqualSlices(u8, &expected_key32, &key32);
+
+    // Test invalid hex length
+    const invalid_hex = "0123456789abcdef";
+    var key: [16]u8 = undefined;
+    try testing.expectEqual(-1, ipcrypt.ipcrypt_key_from_hex(&key, key.len, invalid_hex, invalid_hex.len));
+
+    // Test invalid hex characters
+    const invalid_chars = "0123456789abcdef0123456789abcdeg";
+    try testing.expectEqual(-1, ipcrypt.ipcrypt_key_from_hex(&key, key.len, invalid_chars, invalid_chars.len));
 }
