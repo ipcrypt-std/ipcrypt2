@@ -1,0 +1,49 @@
+name: Visual Studio Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        platform: [x64, x86, ARM64]
+        configuration: [Debug, Release]
+        include:
+          - platform: x64
+            vc_platform: x64
+            arch: /arch:AVX
+          - platform: x86
+            vc_platform: x86
+            arch: /arch:AVX
+          - platform: ARM64
+            vc_platform: ARM64
+            arch:
+
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Create output directories
+        run: |
+          mkdir -p obj\${{ matrix.configuration }}\${{ matrix.platform }}
+          mkdir -p bin\${{ matrix.configuration }}\${{ matrix.platform }}
+
+      - name: Build Library
+        run: |
+          cl.exe /nologo /W4 /WX /${{ matrix.configuration }} ${{ matrix.arch }} /Iinclude /c src/ipcrypt2.c /Fo:obj\${{ matrix.configuration }}\${{ matrix.platform }}\ipcrypt2.obj
+          lib.exe /nologo /OUT:bin\${{ matrix.configuration }}\${{ matrix.platform }}\ipcrypt2.lib obj\${{ matrix.configuration }}\${{ matrix.platform }}\ipcrypt2.obj
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ipcrypt2-${{ matrix.platform }}-${{ matrix.configuration }}
+          path: |
+            bin/${{ matrix.configuration }}/${{ matrix.platform }}/*.lib

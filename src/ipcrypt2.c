@@ -46,7 +46,7 @@
 
 #define COMPILER_ASSERT(X) (void) sizeof(char[(X) ? 1 : -1])
 
-#if !defined(MSC_VER) || _MSC_VER < 1800
+#if !defined(_MSC_VER) || _MSC_VER < 1800
 #    define __vectorcall
 #endif
 
@@ -58,7 +58,11 @@
 #        define __ARM_FEATURE_AES 1
 #    endif
 
-#    include <arm_neon.h>
+#    if defined(_MSC_VER) && defined(_M_ARM64)
+#        include <arm64_neon.h>
+#    else
+#        include <arm_neon.h>
+#    endif
 
 #    ifdef __clang__
 /**
@@ -161,7 +165,7 @@ AES_KEYGEN(BlockVec block_vec, const int rc)
 
 #else
 
-#    if defined(__x86_64__) || defined(__i386__)
+#    if defined(__x86_64__) || defined(__i386__) || defined(_M_X64) || defined(_M_IX86)
 
 #        ifdef __clang__
 /**
@@ -173,6 +177,14 @@ AES_KEYGEN(BlockVec block_vec, const int rc)
  * Enable AES/AVX instructions when compiling with GCC.
  */
 #            pragma GCC target("aes,sse4.1")
+#        elif defined(_MSC_VER)
+#            include <intrin.h>
+#            pragma intrinsic(_mm_aesenc_si128)
+#            pragma intrinsic(_mm_aesenclast_si128)
+#            pragma intrinsic(_mm_aesdec_si128)
+#            pragma intrinsic(_mm_aesdeclast_si128)
+#            pragma intrinsic(_mm_aesimc_si128)
+#            pragma intrinsic(_mm_aeskeygenassist_si128)
 #        endif
 
 #        include <smmintrin.h>
@@ -774,12 +786,16 @@ ipcrypt_init(IPCrypt *ipcrypt, const uint8_t key[IPCRYPT_KEYBYTES])
 void
 ipcrypt_deinit(IPCrypt *ipcrypt)
 {
-#ifdef __STDC_LIB_EXT1__
+#ifdef _MSC_VER
+    SecureZeroMemory(ipcrypt, sizeof *ipcrypt);
+#elif defined(__STDC_LIB_EXT1__)
     memset_s(ipcrypt, sizeof *ipcrypt, 0, sizeof *ipcrypt);
 #else
     memset(ipcrypt, 0, sizeof *ipcrypt);
-    // Compiler barrier to prevent optimizations from removing memset.
+// Compiler barrier to prevent optimizations from removing memset.
+#    if defined(__GNUC__) || defined(__clang__)
     __asm__ __volatile__("" : : "r"(ipcrypt) : "memory");
+#    endif
 #endif
 }
 
@@ -804,12 +820,16 @@ ipcrypt_ndx_init(IPCryptNDX *ipcrypt, const uint8_t key[IPCRYPT_NDX_KEYBYTES])
 void
 ipcrypt_ndx_deinit(IPCryptNDX *ipcrypt)
 {
-#ifdef __STDC_LIB_EXT1__
+#ifdef _MSC_VER
+    SecureZeroMemory(ipcrypt, sizeof *ipcrypt);
+#elif defined(__STDC_LIB_EXT1__)
     memset_s(ipcrypt, sizeof *ipcrypt, 0, sizeof *ipcrypt);
 #else
     memset(ipcrypt, 0, sizeof *ipcrypt);
-    // Compiler barrier to prevent optimizations from removing memset.
+// Compiler barrier to prevent optimizations from removing memset.
+#    if defined(__GNUC__) || defined(__clang__)
     __asm__ __volatile__("" : : "r"(ipcrypt) : "memory");
+#    endif
 #endif
 }
 
