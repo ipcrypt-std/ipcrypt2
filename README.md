@@ -321,6 +321,7 @@ int main(void) {
 - An [implementation in JavaScript](https://www.npmjs.com/package/ipcrypt) is available on NPM.
 - An [implementation in Go](https://github.com/jedisct1/go-ipcrypt) is also available.
 - An [implementation in Zig](https://github.com/jedisct1/zig-ipcrypt) is also available.
+- [Bindings for D](https://github.com/kassane/d-ipcrypt2) are available. Contributed by @kassane, thanks!
 
 ---
 
