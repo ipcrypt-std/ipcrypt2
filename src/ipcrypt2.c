@@ -744,7 +744,7 @@ ipcrypt_sockaddr_to_ip16(uint8_t ip16[16], const struct sockaddr *sa)
 void
 ipcrypt_ip16_to_sockaddr(struct sockaddr_storage *sa, const uint8_t ip16[16])
 {
-    const uint8_t ipv4_mapped[12] = { 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff };
+    const uint8_t ipv4_mapped[12] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff };
 
     memset(sa, 0, sizeof *sa);
     if (memcmp(ip16, ipv4_mapped, sizeof ipv4_mapped) == 0) {
