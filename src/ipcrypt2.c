@@ -638,6 +638,42 @@ ipcrypt_key_from_hex(uint8_t *key, size_t key_len, const char *hex, size_t hex_l
 }
 
 /**
+ * Convert a hexadecimal string to an ipcrypt-nd ciphertext.
+ *
+ * The input string must be exactly 48 characters long (IPCRYPT_NDIP_BYTES bytes in hex).
+ * Returns 0 on success, or -1 if the input string is invalid or conversion fails.
+ */
+int
+ipcrypt_ndip_from_hex(uint8_t ndip[IPCRYPT_NDIP_BYTES], const char *hex, size_t hex_len)
+{
+    if (hex_len != 2 * IPCRYPT_NDIP_BYTES) {
+        return -1;
+    }
+    if (hex2bin(ndip, IPCRYPT_NDIP_BYTES, hex, hex_len) != IPCRYPT_NDIP_BYTES) {
+        return -1;
+    }
+    return 0;
+}
+
+/**
+ * Convert a hexadecimal string to an ipcrypt-ndx ciphertext.
+ *
+ * The input string must be exactly 64 characters long (IPCRYPT_NDX_NDIP_BYTES bytes in hex).
+ * Returns 0 on success, or -1 if the input string is invalid or conversion fails.
+ */
+int
+ipcrypt_ndx_ndip_from_hex(uint8_t ndip[IPCRYPT_NDX_NDIP_BYTES], const char *hex, size_t hex_len)
+{
+    if (hex_len != 2 * IPCRYPT_NDX_NDIP_BYTES) {
+        return -1;
+    }
+    if (hex2bin(ndip, IPCRYPT_NDX_NDIP_BYTES, hex, hex_len) != IPCRYPT_NDX_NDIP_BYTES) {
+        return -1;
+    }
+    return 0;
+}
+
+/**
  * ipcrypt_str_to_ip16 parses an IP address string (IPv4 or IPv6) into a 16-byte buffer ip16.
  * If it detects an IPv4 address, it is stored as an IPv4-mapped IPv6 address.
  * Returns 0 on success, or -1 on failure.
