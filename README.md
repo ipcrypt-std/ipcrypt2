@@ -199,6 +199,8 @@ size_t ipcrypt_ip16_to_str(char ip_str[IPCRYPT_MAX_IP_STR_BYTES], const uint8_t 
 int ipcrypt_sockaddr_to_ip16(uint8_t ip16[16], const struct sockaddr *sa);
 void ipcrypt_ip16_to_sockaddr(struct sockaddr_storage *sa, const uint8_t ip16[16]);
 int ipcrypt_key_from_hex(uint8_t *key, size_t key_len, const char *hex, size_t hex_len);
+int ipcrypt_ndip_from_hex(uint8_t ndip[24], size_t key_len, const char *hex, size_t hex_len);
+int ipcrypt_ndx_ndip_from_hex(uint8_t ndip[32], size_t key_len, const char *hex, size_t hex_len);
 ```
 
 - **`ipcrypt_str_to_ip16`** / **`ipcrypt_ip16_to_str`**: Convert between string IP addresses and their 16-byte representation.
