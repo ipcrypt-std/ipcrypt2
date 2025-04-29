@@ -319,11 +319,13 @@ int main(void) {
 
 ## Bindings and Other Implementations
 
-- Rust bindings and a pure Rust implementation for `ipcrypt2` are available, enabling Rust developers to easily integrate and utilize the library. You can find them at [`rust-ipcrypt2`](https://crates.io/crates/ipcrypt2).
-- An [implementation in JavaScript](https://www.npmjs.com/package/ipcrypt) is available on NPM.
-- An [implementation in Go](https://github.com/jedisct1/go-ipcrypt) is also available.
-- An [implementation in Zig](https://github.com/jedisct1/zig-ipcrypt) is also available.
-- [Bindings for D](https://github.com/kassane/d-ipcrypt2) are available. Contributed by @kassane, thanks!
+- [Bindings for D](https://github.com/kassane/d-ipcrypt2)
+- [JavaScript](https://www.npmjs.com/package/ipcrypt)
+- [Zig](https://github.com/jedisct1/zig-ipcrypt)
+- [Go](https://github.com/jedisct1/go-ipcrypt)
+- [Rust Bindings](https://docs.rs/ipcrypt2)
+- [Rust implementation](https://docs.rs/ipcrypt_rs)
+- [PHP](https://github.com/jedisct1/php-ipcrypt)
 
 ---
 
