@@ -169,12 +169,12 @@ AES_KEYGEN(BlockVec block_vec, const int rc)
 
 #        ifdef __clang__
 /**
- * Enable AES/AVX instructions when compiling with Clang.
+ * Enable AES/SSE4.1 instructions when compiling with Clang.
  */
 #            pragma clang attribute push(__attribute__((target("aes,sse4.1"))), apply_to = function)
 #        elif defined(__GNUC__)
 /**
- * Enable AES/AVX instructions when compiling with GCC.
+ * Enable AES/SSE4.1 instructions when compiling with GCC.
  */
 #            pragma GCC target("aes,sse4.1")
 #        elif defined(_MSC_VER)
