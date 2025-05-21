@@ -94,24 +94,24 @@ typedef uint64x2_t BlockVec;
  * Perform one round of AES encryption (no final round) on block_vec with rkey.
  */
 #    define AES_XENCRYPT(block_vec, rkey) \
-        vreinterpretq_u64_u8(vaesmcq_u8(vaeseq_u8(vreinterpretq_u8_u64(block_vec), rkey)))
+        vreinterpretq_u64_u8(vaesmcq_u8(vaeseq_u8(rkey, vreinterpretq_u8_u64(block_vec))))
 /**
  * Perform the final AES encryption round on block_vec with rkey.
  * The final round excludes the MixColumns step.
  */
 #    define AES_XENCRYPTLAST(block_vec, rkey) \
-        vreinterpretq_u64_u8(vaeseq_u8(vreinterpretq_u8_u64(block_vec), rkey))
+        vreinterpretq_u64_u8(vaeseq_u8(rkey, vreinterpretq_u8_u64(block_vec)))
 /**
  * Perform one round of AES decryption (no final round) on block_vec with rkey.
  */
 #    define AES_XDECRYPT(block_vec, rkey) \
-        vreinterpretq_u64_u8(vaesimcq_u8(vaesdq_u8(vreinterpretq_u8_u64(block_vec), rkey)))
+        vreinterpretq_u64_u8(vaesimcq_u8(vaesdq_u8(rkey, vreinterpretq_u8_u64(block_vec))))
 /**
  * Perform the final AES decryption round on block_vec with rkey.
  * The final round excludes the InverseMixColumns step.
  */
 #    define AES_XDECRYPTLAST(block_vec, rkey) \
-        vreinterpretq_u64_u8(vaesdq_u8(vreinterpretq_u8_u64(block_vec), rkey))
+        vreinterpretq_u64_u8(vaesdq_u8(rkey, vreinterpretq_u8_u64(block_vec)))
 /**
  * XOR two 128-bit blocks.
  */
