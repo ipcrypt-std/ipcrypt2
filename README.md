@@ -326,6 +326,8 @@ int main(void) {
 - [Rust Bindings](https://docs.rs/ipcrypt2)
 - [Rust implementation](https://docs.rs/ipcrypt_rs)
 - [PHP](https://github.com/jedisct1/php-ipcrypt)
+- [D](https://github.com/kassane/d-ipcrypt2)
+- [Dart](https://github.com/elliotwutingfeng/ipcrypt)
 
 ---
 
