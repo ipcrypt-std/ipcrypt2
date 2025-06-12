@@ -23,7 +23,7 @@
  * - Minimal external dependencies; just compile and link.
  *
  * Limitations:
- * - Not intended for general-purpose encryption—IP address only.
+ * - Not intended for general-purpose encryption — IP address only.
  * - Ensure keys are secret and tweak values are random or unique per encryption.
  */
 
