@@ -29,11 +29,15 @@ pub fn build(b: *std.Build) void {
         .source_dir = b.path("src/include"),
     });
 
-    const main_tests = b.addTest(.{
-        .root_source_file = b.path("src/test/main.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const main_tests = b.addTest(
+        .{ .root_module = b.createModule(
+            .{
+                .root_source_file = b.path("src/test/main.zig"),
+                .target = target,
+                .optimize = optimize,
+            },
+        ) },
+    );
 
     main_tests.addIncludePath(b.path("src/include"));
     main_tests.linkLibrary(lib);
