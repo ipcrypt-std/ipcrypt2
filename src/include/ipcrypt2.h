@@ -236,7 +236,7 @@ void ipcrypt_ndx_encrypt_ip16(const IPCryptNDX *ipcrypt, uint8_t ndip[IPCRYPT_ND
 
 /**
  * Decrypt a non-deterministically encrypted 16-byte IP address, previously encrypted with
- * `ipcrypt_ndx_encrypt_ip16`.333333
+ * `ipcrypt_ndx_encrypt_ip16`.
  *
  * Input is ndip, and output is written to ip16.
  */
