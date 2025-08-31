@@ -297,7 +297,8 @@ typedef struct NDXState {
  * st: the AesState structure to be populated.
  * key: a 16-byte AES key.
  */
-static void __vectorcall expand_key(KeySchedule rkeys, const unsigned char key[IPCRYPT_KEYBYTES])
+static void __vectorcall
+expand_key(KeySchedule rkeys, const unsigned char key[IPCRYPT_KEYBYTES])
 {
     BlockVec t, s;
     size_t   i = 0;
@@ -904,7 +905,9 @@ ipcrypt_encrypt_ip_str(const IPCrypt *ipcrypt, char encrypted_ip_str[IPCRYPT_MAX
 {
     uint8_t ip16[16];
 
-    ipcrypt_str_to_ip16(ip16, ip_str);
+    if (ipcrypt_str_to_ip16(ip16, ip_str) != 0) {
+        return 0;
+    }
     ipcrypt_encrypt_ip16(ipcrypt, ip16);
     return ipcrypt_ip16_to_str(encrypted_ip_str, ip16);
 }
@@ -920,7 +923,9 @@ ipcrypt_decrypt_ip_str(const IPCrypt *ipcrypt, char ip_str[IPCRYPT_MAX_IP_STR_BY
     uint8_t ip16[16];
 
     memset(ip_str, 0, IPCRYPT_MAX_IP_STR_BYTES);
-    ipcrypt_str_to_ip16(ip16, encrypted_ip_str);
+    if (ipcrypt_str_to_ip16(ip16, encrypted_ip_str) != 0) {
+        return 0;
+    }
     ipcrypt_decrypt_ip16(ipcrypt, ip16);
     return ipcrypt_ip16_to_str(ip_str, ip16);
 }
