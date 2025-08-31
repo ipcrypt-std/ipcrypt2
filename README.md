@@ -185,7 +185,7 @@ size_t ipcrypt_ndx_decrypt_ip_str(const IPCryptNDX *ipcrypt,
                                   const char *encrypted_ip_str);
 ```
 
-- The **NDX non-deterministic** mode takes a random 16-byte tweak (`random[IPCRYPT_NDK_TWEAKBYTES]`) and a 32-byte key (`IPCRYPT_NDX_KEYBYTES`).
+- The **NDX non-deterministic** mode takes a random 16-byte tweak (`random[IPCRYPT_NDX_TWEAKBYTES]`) and a 32-byte key (`IPCRYPT_NDX_KEYBYTES`).
 - Even if you encrypt the same IP multiple times with the same key, encrypted values will not be unique, which helps mitigate traffic analysis or repeated-pattern attacks.
 - This mode is _not_ format-preserving: the output is 32 bytes (or 64 hex characters).
 
