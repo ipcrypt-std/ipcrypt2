@@ -308,7 +308,8 @@ int main(void) {
    - In "standard" mode, the library encrypts a 16-byte IP buffer into another 16-byte buffer. After encryption, it _may become a valid IPv6 address even if the original address was IPv4_, or vice versa.
 
 4. **Not a General Purpose Encryption Library**
-   - This library is specialized for IP address encryption and may not be suitable for arbitrary data encryption.
+
+  - This library is specialized for IP address encryption and may not be suitable for arbitrary data encryption.
 
 ## Limitations and Assumptions
 
