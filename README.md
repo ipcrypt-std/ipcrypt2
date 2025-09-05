@@ -317,14 +317,18 @@ int main(void) {
 
 ## Bindings and Other Implementations
 
-- [Bindings for D](https://github.com/kassane/d-ipcrypt2)
-- [JavaScript](https://www.npmjs.com/package/ipcrypt)
-- [Zig](https://github.com/jedisct1/zig-ipcrypt)
+- [Python (reference implementation)](https://github.com/jedisct1/draft-denis-ipcrypt/tree/main/implementations/python)
+- [Rust - Native implementation](https://docs.rs/ipcrypt_rs)
+- [Rust - C bindings](https://docs.rs/ipcrypt2)
+- [JavaScript (Browser and Node.js)](https://github.com/jedisct1/ipcrypt-js)
 - [Go](https://github.com/jedisct1/go-ipcrypt)
-- [Rust Bindings](https://docs.rs/ipcrypt2)
-- [Rust implementation](https://docs.rs/ipcrypt_rs)
-- [PHP](https://github.com/jedisct1/php-ipcrypt)
-- [D](https://github.com/kassane/d-ipcrypt2)
+- [Java](https://github.com/jedisct1/ipcrypt-java)
+- [Lua](https://github.com/jedisct1/ipcrypt-lua)
+- [Swift](https://github.com/jedisct1/ipcrypt-swift)
+- [Elixir](https://github.com/jedisct1/ipcrypt-elixir)
+- [Ruby](https://github.com/jedisct1/ipcrypt-ruby)
+- [Kotlin](https://github.com/jedisct1/ipcrypt-kotlin)
+- [AWK](https://github.com/jedisct1/ipcrypt.awk)
 - [Dart](https://github.com/elliotwutingfeng/ipcrypt)
 
 ---
