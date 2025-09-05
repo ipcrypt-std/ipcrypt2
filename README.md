@@ -1,10 +1,8 @@
 # `ipcrypt2`
 
-`ipcrypt2` is a lightweight C library that encrypts (or "obfuscates") IP addresses for privacy and security purposes.
+A lightweight, self-contained C implementation of the [Methods for IP Address Encryption and Obfuscation](https://ipcrypt-std.github.io/draft-denis-ipcrypt/draft-denis-ipcrypt.html) draft to encrypt (or "obfuscate") IP addresses for privacy, compliance and security purposes.
 
 It supports both IPv4 and IPv6 addresses, and it can optionally preserve the IP format (so an IP address is still recognized as an IP address after encryption). `ipcrypt2` also provides a non-deterministic encryption mode, where encrypting the same address multiple times will yield different ciphertexts.
-
-This is an implementation of the [Methods for IP Address Encryption and Obfuscation](https://jedisct1.github.io/draft-denis-ipcrypt/draft-denis-ipcrypt.html) draft.
 
 ## Features
 
