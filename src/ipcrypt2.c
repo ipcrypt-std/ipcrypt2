@@ -918,8 +918,7 @@ ipcrypt_is_mapped_ipv4(const uint8_t ip16[16])
 }
 
 static void
-ipcrypt_pfx_pad_prefix(uint8_t padded_prefix[16], const uint8_t ip16[16],
-                       unsigned int prefix_len_bits)
+ipcrypt_pfx_pad_prefix(uint8_t padded_prefix[16], unsigned int prefix_len_bits)
 {
     memset(padded_prefix, 0, 16);
     if (prefix_len_bits == 0) {
@@ -990,7 +989,7 @@ ipcrypt_pfx_encrypt_ip16(const IPCryptPFX *ipcrypt, uint8_t ip16[16])
         prefix_start = 96;
     }
 
-    ipcrypt_pfx_pad_prefix(padded_prefix, ip16, prefix_start);
+    ipcrypt_pfx_pad_prefix(padded_prefix, prefix_start);
 
     memset(encrypted_ip, 0, 16);
     if (prefix_start == 96) {
@@ -1060,7 +1059,7 @@ ipcrypt_pfx_decrypt_ip16(const IPCryptPFX *ipcrypt, uint8_t ip16[16])
         prefix_start = 96;
     }
 
-    ipcrypt_pfx_pad_prefix(padded_prefix, ip16, prefix_start);
+    ipcrypt_pfx_pad_prefix(padded_prefix, prefix_start);
 
     memset(original_ip, 0, 16);
     if (prefix_start == 96) {
