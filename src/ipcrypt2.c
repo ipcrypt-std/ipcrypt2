@@ -2,17 +2,23 @@
  * IPCrypt2: Lightweight IP Address Encryption Library
  *
  * IPCrypt2 provides simple and efficient encryption and decryption of IP addresses (IPv4 & IPv6).
- * Designed for privacy-preserving network applications, it supports three encryption modes:
+ * Designed for privacy-preserving network applications, it supports four encryption modes:
  *
  * 1. **Format-Preserving AES Encryption**
  *    - Transforms an IP address into another valid IP address of the same size.
  *    - Useful for logs or systems that expect syntactically correct IPs.
  *
- * 2. **Non-Deterministic AES Encryption (KIASU-BC)**
+ * 2. **Prefix-Preserving AES Encryption (PFX)**
+ *    - IP addresses with the same prefix produce encrypted IP addresses with the same prefix.
+ *    - The prefix can be of any length.
+ *    - Useful for maintaining network structure while anonymizing individual hosts.
+ *    - Format-preserving: output remains a valid IP address.
+ *
+ * 3. **Non-Deterministic AES Encryption (KIASU-BC)**
  *    - Introduces a 64-bit tweak, producing different ciphertexts for the same IP.
  *    - Useful when repeated IPs must remain unlinkable. This mode is not format-preserving.
  *
- * 3. **NDX Mode: Non-Deterministic AES Encryption with Extended Tweaks (AES-XTX)**
+ * 4. **NDX Mode: Non-Deterministic AES Encryption with Extended Tweaks (AES-XTX)**
  *    - Introduces a 128-bit tweak, producing different ciphertexts for the same IP.
  *    - Useful when repeated IPs must remain unlinkable. This mode is not format-preserving.
  *    - Higher usage limits than KIASU-BC, but half the performance and larger ciphertexts.
@@ -145,6 +151,19 @@ typedef uint64x2_t BlockVec;
         vreinterpretq_u8_u32(vmovl_u16(vld1_u16((const uint16_t *) (tweak))));
 
 /**
+ * Shift an entire 128-bit block left by 1 bit.
+ */
+static inline BlockVec
+SHL1_128(const BlockVec a)
+{
+    const BlockVec shl     = vshlq_n_u8(a, 1);
+    const BlockVec msb     = vshrq_n_u8(a, 7);
+    const BlockVec zero    = vdupq_n_u8(0);
+    const BlockVec carries = vextq_u8(msb, zero, 1);
+    return vorrq_u8(shl, carries);
+}
+
+/**
  * Internal function for deriving a subkey using AES key generation instructions.
  * block_vec: the current AES round key block.
  * rc: the round constant.
@@ -264,6 +283,18 @@ typedef __m128i BlockVec;
         _mm_shuffle_epi8(_mm_loadu_si64((const void *) tweak),                                     \
                          _mm_setr_epi8(0x00, 0x01, 0x80, 0x80, 0x02, 0x03, 0x80, 0x80, 0x04, 0x05, \
                                        0x80, 0x80, 0x06, 0x07, 0x80, 0x80))
+
+/**
+ * Shift an entire 128-bit block left by 1 bit.
+ */
+static inline BlockVec
+SHL1_128(const BlockVec a)
+{
+    const BlockVec shl     = _mm_add_epi8(a, a);
+    const BlockVec msb     = _mm_and_si128(_mm_srli_epi16(a, 7), _mm_set1_epi8(0x01));
+    const BlockVec carries = _mm_srli_si128(msb, 1);
+    return _mm_or_si128(shl, carries);
+}
 #endif
 
 /**
@@ -291,6 +322,14 @@ typedef struct NDXState {
     KeySchedule tkeys;
     KeySchedule rkeys;
 } NDXState;
+
+/**
+ * PFXState holds the expanded tweak round keys and encryption round keys for encryption/decryption.
+ */
+typedef struct PFXState {
+    KeySchedule k1keys;
+    KeySchedule k2keys;
+} PFXState;
 
 /**
  * expand_key expands a 16-byte AES key into a full set of round keys.
@@ -834,6 +873,274 @@ ipcrypt_deinit(IPCrypt *ipcrypt)
     __asm__ __volatile__("" : : "r"(ipcrypt) : "memory");
 #    endif
 #endif
+}
+
+/**
+ * ipcrypt_pfx_init initializes the IPCryptPFX context with a 32-byte secret key.
+ * This prepares the context for prefix-preserving IP address encryption operations.
+ */
+void
+ipcrypt_pfx_init(IPCryptPFX *ipcrypt, const uint8_t key[IPCRYPT_PFX_KEYBYTES])
+{
+    PFXState st;
+
+    expand_key(st.k1keys, key);
+    expand_key(st.k2keys, key + 16);
+    COMPILER_ASSERT(sizeof ipcrypt->opaque >= sizeof st);
+    memcpy(ipcrypt->opaque, &st, sizeof st);
+}
+
+/**
+ * ipcrypt_pfx_deinit securely clears and deinitializes the IPCryptPFX context.
+ * This ensures that secret key material is wiped from memory.
+ */
+void
+ipcrypt_pfx_deinit(IPCryptPFX *ipcrypt)
+{
+#ifdef _MSC_VER
+    SecureZeroMemory(ipcrypt, sizeof *ipcrypt);
+#elif defined(__STDC_LIB_EXT1__)
+    memset_s(ipcrypt, sizeof *ipcrypt, 0, sizeof *ipcrypt);
+#else
+    memset(ipcrypt, 0, sizeof *ipcrypt);
+// Compiler barrier to prevent optimizations from removing memset.
+#    if defined(__GNUC__) || defined(__clang__)
+    __asm__ __volatile__("" : : "r"(ipcrypt) : "memory");
+#    endif
+#endif
+}
+
+static int
+ipcrypt_is_mapped_ipv4(const uint8_t ip16[16])
+{
+    static const uint8_t ipv4_mapped[12] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff };
+    return memcmp(ip16, ipv4_mapped, sizeof ipv4_mapped) == 0;
+}
+
+static void
+ipcrypt_pfx_pad_prefix(uint8_t padded_prefix[16], const uint8_t ip16[16],
+                       unsigned int prefix_len_bits)
+{
+    memset(padded_prefix, 0, 16);
+    if (prefix_len_bits == 0) {
+        padded_prefix[15] = 0x01;
+    } else {
+        padded_prefix[3]  = 0x01;
+        padded_prefix[14] = 0xff;
+        padded_prefix[15] = 0xff;
+    }
+}
+
+static uint8_t
+ipcrypt_pfx_get_bit(const uint8_t ip16[16], const unsigned int bit_index)
+{
+    return (ip16[15 - bit_index / 8] >> (bit_index % 8)) & 1;
+}
+
+static void
+ipcrypt_pfx_set_bit(uint8_t ip16[16], const unsigned int bit_index, const uint8_t bit_value)
+{
+    if (bit_value) {
+        ip16[15 - bit_index / 8] |= (1 << (bit_index % 8));
+    } else {
+        ip16[15 - bit_index / 8] &= ~(1 << (bit_index % 8));
+    }
+}
+
+static void
+ipcrypt_pfx_shift_left(uint8_t ip16[16])
+{
+#ifdef STANDARD
+    size_t i;
+
+    for (i = 0; i < 15; i++) {
+        ip16[i] = (ip16[i] << 1) | (ip16[i + 1] >> 7);
+    }
+    ip16[15] <<= 1;
+#else
+    BlockVec v = LOAD128(ip16);
+    v          = SHL1_128(v);
+    STORE128(ip16, v);
+#endif
+}
+
+/**
+ * ipcrypt_pfx_encrypt_ip16 encrypts a 16-byte IP address in-place with prefix preservation.
+ * IP addresses with the same prefix produce encrypted IP addresses with the same prefix.
+ * The prefix can be of any length. For IPv4 addresses (stored as IPv4-mapped IPv6),
+ * this preserves the IPv4 prefix structure.
+ */
+void
+ipcrypt_pfx_encrypt_ip16(const IPCryptPFX *ipcrypt, uint8_t ip16[16])
+{
+    PFXState     st;
+    BlockVec     e1, e2, e;
+    uint8_t      encrypted_ip[16];
+    uint8_t      padded_prefix[16];
+    uint8_t      t[16];
+    size_t       i;
+    unsigned int bit_pos;
+    unsigned int prefix_start = 0;
+    unsigned int prefix_len_bits;
+    uint8_t      cipher_bit;
+    uint8_t      original_bit;
+
+    memcpy(&st, ipcrypt->opaque, sizeof st);
+    if (ipcrypt_is_mapped_ipv4(ip16)) {
+        prefix_start = 96;
+    }
+
+    ipcrypt_pfx_pad_prefix(padded_prefix, ip16, prefix_start);
+
+    memset(encrypted_ip, 0, 16);
+    if (prefix_start == 96) {
+        encrypted_ip[10] = 0xff;
+        encrypted_ip[11] = 0xff;
+    }
+
+    for (prefix_len_bits = prefix_start; prefix_len_bits < 128; prefix_len_bits++) {
+#ifdef AES_XENCRYPT
+        // For AArch64 with AES_XENCRYPT macros.
+        e1 = AES_XENCRYPT(LOAD128(padded_prefix), st.k1keys[0]);
+        e2 = AES_XENCRYPT(LOAD128(padded_prefix), st.k2keys[0]);
+        for (i = 1; i < ROUNDS - 1; i++) {
+            e1 = AES_XENCRYPT(e1, st.k1keys[i]);
+            e2 = AES_XENCRYPT(e2, st.k2keys[i]);
+        }
+        e1 = AES_XENCRYPTLAST(e1, st.k1keys[i]);
+        e2 = AES_XENCRYPTLAST(e2, st.k2keys[i]);
+        e1 = XOR128(e1, st.k1keys[ROUNDS]);
+        e2 = XOR128(e2, st.k2keys[ROUNDS]);
+#else
+        // For x86_64 or a fallback.
+        e1 = XOR128(LOAD128(padded_prefix), st.k1keys[0]);
+        e2 = XOR128(LOAD128(padded_prefix), st.k2keys[0]);
+        for (i = 1; i < ROUNDS; i++) {
+            e1 = AES_ENCRYPT(e1, st.k1keys[i]);
+            e2 = AES_ENCRYPT(e2, st.k2keys[i]);
+        }
+        e1 = AES_ENCRYPTLAST(e1, st.k1keys[ROUNDS]);
+        e2 = AES_ENCRYPTLAST(e2, st.k2keys[ROUNDS]);
+#endif
+        e = XOR128(e1, e2);
+        STORE128(t, e);
+        cipher_bit   = t[15] & 1;
+        bit_pos      = 127 - prefix_len_bits;
+        original_bit = ipcrypt_pfx_get_bit(ip16, bit_pos);
+        ipcrypt_pfx_set_bit(encrypted_ip, bit_pos, original_bit ^ cipher_bit);
+        ipcrypt_pfx_shift_left(padded_prefix);
+        ipcrypt_pfx_set_bit(padded_prefix, 0, original_bit);
+    }
+    memcpy(ip16, encrypted_ip, 16);
+}
+
+/**
+ * ipcrypt_pfx_decrypt_ip16 decrypts a 16-byte IP address in-place with prefix preservation.
+ * This reverses the encryption performed by ipcrypt_pfx_encrypt_ip16, recovering the original IP
+ * address.
+ */
+void
+ipcrypt_pfx_decrypt_ip16(const IPCryptPFX *ipcrypt, uint8_t ip16[16])
+{
+    PFXState     st;
+    BlockVec     e1, e2, e;
+    uint8_t      original_ip[16];
+    uint8_t      padded_prefix[16];
+    uint8_t      t[16];
+    size_t       i;
+    unsigned int bit_pos;
+    unsigned int prefix_start = 0;
+    unsigned int prefix_len_bits;
+    uint8_t      cipher_bit;
+    uint8_t      encrypted_bit;
+    uint8_t      original_bit;
+
+    memcpy(&st, ipcrypt->opaque, sizeof st);
+    if (ipcrypt_is_mapped_ipv4(ip16)) {
+        prefix_start = 96;
+    }
+
+    ipcrypt_pfx_pad_prefix(padded_prefix, ip16, prefix_start);
+
+    memset(original_ip, 0, 16);
+    if (prefix_start == 96) {
+        original_ip[10] = 0xff;
+        original_ip[11] = 0xff;
+    }
+
+    for (prefix_len_bits = prefix_start; prefix_len_bits < 128; prefix_len_bits++) {
+#ifdef AES_XENCRYPT
+        // For AArch64 with AES_XENCRYPT macros.
+        e1 = AES_XENCRYPT(LOAD128(padded_prefix), st.k1keys[0]);
+        e2 = AES_XENCRYPT(LOAD128(padded_prefix), st.k2keys[0]);
+        for (i = 1; i < ROUNDS - 1; i++) {
+            e1 = AES_XENCRYPT(e1, st.k1keys[i]);
+            e2 = AES_XENCRYPT(e2, st.k2keys[i]);
+        }
+        e1 = AES_XENCRYPTLAST(e1, st.k1keys[i]);
+        e2 = AES_XENCRYPTLAST(e2, st.k2keys[i]);
+        e1 = XOR128(e1, st.k1keys[ROUNDS]);
+        e2 = XOR128(e2, st.k2keys[ROUNDS]);
+#else
+        // For x86_64 or a fallback.
+        e1 = XOR128(LOAD128(padded_prefix), st.k1keys[0]);
+        e2 = XOR128(LOAD128(padded_prefix), st.k2keys[0]);
+        for (i = 1; i < ROUNDS; i++) {
+            e1 = AES_ENCRYPT(e1, st.k1keys[i]);
+            e2 = AES_ENCRYPT(e2, st.k2keys[i]);
+        }
+        e1 = AES_ENCRYPTLAST(e1, st.k1keys[ROUNDS]);
+        e2 = AES_ENCRYPTLAST(e2, st.k2keys[ROUNDS]);
+#endif
+        e = XOR128(e1, e2);
+        STORE128(t, e);
+        cipher_bit    = t[15] & 1;
+        bit_pos       = 127 - prefix_len_bits;
+        encrypted_bit = ipcrypt_pfx_get_bit(ip16, bit_pos);
+        original_bit  = encrypted_bit ^ cipher_bit;
+        ipcrypt_pfx_set_bit(original_ip, bit_pos, original_bit);
+        ipcrypt_pfx_shift_left(padded_prefix);
+        ipcrypt_pfx_set_bit(padded_prefix, 0, original_bit);
+    }
+    memcpy(ip16, original_ip, 16);
+}
+
+/**
+ * ipcrypt_pfx_encrypt_ip_str encrypts an IP address string (IPv4 or IPv6) with prefix preservation.
+ * The result is another valid IP address string.
+ * Returns the length of the encrypted string or 0 on error.
+ */
+size_t
+ipcrypt_pfx_encrypt_ip_str(const IPCryptPFX *ipcrypt,
+                           char              encrypted_ip_str[IPCRYPT_MAX_IP_STR_BYTES],
+                           const char       *ip_str)
+{
+    uint8_t ip16[16];
+
+    if (ipcrypt_str_to_ip16(ip16, ip_str) != 0) {
+        return 0;
+    }
+    ipcrypt_pfx_encrypt_ip16(ipcrypt, ip16);
+    return ipcrypt_ip16_to_str(encrypted_ip_str, ip16);
+}
+
+/**
+ * ipcrypt_pfx_decrypt_ip_str decrypts an encrypted IP address string with prefix preservation.
+ * Returns the length of the decrypted string or 0 on error.
+ */
+size_t
+ipcrypt_pfx_decrypt_ip_str(const IPCryptPFX *ipcrypt,
+                           char              ip_str[IPCRYPT_MAX_IP_STR_BYTES],
+                           const char       *encrypted_ip_str)
+{
+    uint8_t ip16[16];
+
+    memset(ip_str, 0, IPCRYPT_MAX_IP_STR_BYTES);
+    if (ipcrypt_str_to_ip16(ip16, encrypted_ip_str) != 0) {
+        return 0;
+    }
+    ipcrypt_pfx_decrypt_ip16(ipcrypt, ip16);
+    return ipcrypt_ip16_to_str(ip_str, ip16);
 }
 
 /**

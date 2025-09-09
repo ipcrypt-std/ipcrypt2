@@ -44,6 +44,9 @@ extern "C" {
 /** Size of the hexadecimal output for NDX encryption, including null terminator. */
 #define IPCRYPT_NDX_NDIP_STR_BYTES (64U + 1U)
 
+/** Size of the PFX encryption key, in bytes (256 bits). */
+#define IPCRYPT_PFX_KEYBYTES 32U
+
 /* -------- Utility functions -------- */
 
 /**
@@ -198,11 +201,72 @@ size_t ipcrypt_nd_decrypt_ip_str(const IPCrypt *ipcrypt,
                                  char           ip_str[IPCRYPT_MAX_IP_STR_BYTES],
                                  const char    *encrypted_ip_str);
 
+/* -------- Prefix-preserving IP encryption -------- */
+
+/**
+ * Encryption context structure for prefix-preserving IP encryption.
+ * Must be initialized with ipcrypt_pfx_init() before use.
+ */
+typedef struct IPCryptPFX {
+    uint8_t opaque[16U * 11 * 2];
+} IPCryptPFX;
+
+/**
+ * Initialize the IPCryptPFX context with a 32-byte secret key.
+ *
+ * The key must:
+ * - Be exactly IPCRYPT_PFX_KEYBYTES bytes.
+ * - Be secret and randomly generated.
+ */
+void ipcrypt_pfx_init(IPCryptPFX *ipcrypt, const uint8_t key[IPCRYPT_PFX_KEYBYTES]);
+
+/**
+ * Securely clear and deinitialize the IPCryptPFX context.
+ *
+ * Optional: No heap allocations are used, but this ensures secrets are wiped from memory.
+ */
+void ipcrypt_pfx_deinit(IPCryptPFX *ipcrypt);
+
+/**
+ * Encrypt a 16-byte IP address in-place with prefix preservation.
+ *
+ * IP addresses with the same prefix produce encrypted IP addresses with the same prefix.
+ * The prefix can be of any length. For IPv4 addresses (stored as IPv4-mapped IPv6),
+ * preserves the IPv4 prefix structure.
+ */
+void ipcrypt_pfx_encrypt_ip16(const IPCryptPFX *ipcrypt, uint8_t ip16[16]);
+
+/**
+ * Decrypt a 16-byte IP address in-place with prefix preservation.
+ *
+ * Reverses the encryption performed by ipcrypt_pfx_encrypt_ip16().
+ */
+void ipcrypt_pfx_decrypt_ip16(const IPCryptPFX *ipcrypt, uint8_t ip16[16]);
+
+/**
+ * Encrypt an IP address string (IPv4 or IPv6) with prefix preservation.
+ *
+ * Output is a format-preserving string written to encrypted_ip_str.
+ * Returns the output length on success, or 0 on error.
+ */
+size_t ipcrypt_pfx_encrypt_ip_str(const IPCryptPFX *ipcrypt,
+                                  char              encrypted_ip_str[IPCRYPT_MAX_IP_STR_BYTES],
+                                  const char       *ip_str);
+
+/**
+ * Decrypt a previously encrypted IP address string with prefix preservation.
+ *
+ * Output is written to ip_str. Returns the output length on success, or 0 on error.
+ */
+size_t ipcrypt_pfx_decrypt_ip_str(const IPCryptPFX *ipcrypt,
+                                  char              ip_str[IPCRYPT_MAX_IP_STR_BYTES],
+                                  const char       *encrypted_ip_str);
+
 /* -------- IP non-deterministic encryption with a 16-byte tweak -------- */
 
 /**
- * Encryption context structure for NDX mode (non-deterministic encryption with 16 bytes of tweak
- * and a 32-byte secret key).
+ * Encryption context structure for NDX mode (non-deterministic encryption with 16 bytes of
+ * tweak and a 32-byte secret key).
  *
  * Must be initialized with ipcrypt_ndx_init() before use.
  */

@@ -2,7 +2,7 @@
 
 A lightweight, self-contained C implementation of the [Methods for IP Address Encryption and Obfuscation](https://ipcrypt-std.github.io/draft-denis-ipcrypt/draft-denis-ipcrypt.html) draft to encrypt (or "obfuscate") IP addresses for privacy, compliance and security purposes.
 
-It supports both IPv4 and IPv6 addresses, and it can optionally preserve the IP format (so an IP address is still recognized as an IP address after encryption). `ipcrypt2` also provides a non-deterministic encryption mode, where encrypting the same address multiple times will yield different ciphertexts.
+It supports both IPv4 and IPv6 addresses, and it can optionally preserve the IP format (so an IP address is still recognized as an IP address after encryption). `ipcrypt2` also provides prefix-preserving encryption (preserving network structure while encrypting host portions) and non-deterministic encryption modes, where encrypting the same address multiple times will yield different ciphertexts.
 
 ## Features
 
@@ -11,6 +11,9 @@ It supports both IPv4 and IPv6 addresses, and it can optionally preserve the IP 
 
 - **Format-Preserving Encryption (FPE)**
   In "standard" mode, an address is encrypted into another valid IP address. This means that consumers of the data (e.g., logs) still see what appears to be an IP address, but without revealing the original address.
+
+- **Prefix-Preserving Encryption (PFX)**
+  IP addresses with the same prefix produce encrypted IP addresses with the same prefix. The prefix can be of any length. Useful for maintaining network topology information while anonymizing individual hosts.
 
 - **Non-Deterministic Encryption**
   Supports non-deterministic encryption using the KIASU-BC and AES-XTX tweakable block ciphers, ensuring that repeated encryptions of the same IP produce different outputs.
@@ -36,12 +39,14 @@ It supports both IPv4 and IPv6 addresses, and it can optionally preserve the IP 
     - [1. `IPCrypt` Context](#1-ipcrypt-context)
     - [2. Initialization and Deinitialization](#2-initialization-and-deinitialization)
     - [3. Format-Preserving Encryption / Decryption](#3-format-preserving-encryption--decryption)
-    - [4. Non-Deterministic Encryption / Decryption](#4-non-deterministic-encryption--decryption)
+    - [4. Prefix-Preserving Encryption / Decryption](#4-prefix-preserving-encryption--decryption)
+    - [5. Non-Deterministic Encryption / Decryption](#5-non-deterministic-encryption--decryption)
       - [With 8 Byte Tweaks (ND Mode)](#with-8-byte-tweaks-nd-mode)
       - [With 16 Byte Tweaks (NDX Mode)](#with-16-byte-tweaks-ndx-mode)
-    - [5. Helper Functions](#5-helper-functions)
+    - [6. Helper Functions](#6-helper-functions)
   - [Examples](#examples)
     - [Format-Preserving Example](#format-preserving-example)
+    - [Prefix-Preserving Example](#prefix-preserving-example)
     - [Non-Deterministic Example](#non-deterministic-example)
   - [Security Considerations](#security-considerations)
   - [Limitations and Assumptions](#limitations-and-assumptions)
@@ -126,7 +131,35 @@ size_t ipcrypt_decrypt_ip_str(const IPCrypt *ipcrypt,
 - **`ipcrypt_encrypt_ip16`** / **`ipcrypt_decrypt_ip16`**: In-place encryption/decryption of a 16-byte buffer. An IPv4 address must be placed inside a 16-byte buffer as an IPv4-mapped IPv6.
 - **`ipcrypt_encrypt_ip_str`** / **`ipcrypt_decrypt_ip_str`**: Takes an IP string (IPv4 or IPv6), encrypts it as a new IP, and returns the encrypted address as a string. Decryption reverses that process.
 
-### 4. Non-Deterministic Encryption / Decryption
+### 4. Prefix-Preserving Encryption / Decryption
+
+```c
+typedef struct IPCryptPFX { ... } IPCryptPFX;
+
+void ipcrypt_pfx_init(IPCryptPFX *ipcrypt, const uint8_t key[IPCRYPT_PFX_KEYBYTES]);
+void ipcrypt_pfx_deinit(IPCryptPFX *ipcrypt);
+
+// For 16-byte (binary) representation of IP addresses:
+void ipcrypt_pfx_encrypt_ip16(const IPCryptPFX *ipcrypt, uint8_t ip16[16]);
+void ipcrypt_pfx_decrypt_ip16(const IPCryptPFX *ipcrypt, uint8_t ip16[16]);
+
+// For string-based IP addresses:
+size_t ipcrypt_pfx_encrypt_ip_str(const IPCryptPFX *ipcrypt,
+                                  char encrypted_ip_str[IPCRYPT_MAX_IP_STR_BYTES],
+                                  const char *ip_str);
+
+size_t ipcrypt_pfx_decrypt_ip_str(const IPCryptPFX *ipcrypt,
+                                  char ip_str[IPCRYPT_MAX_IP_STR_BYTES],
+                                  const char *encrypted_ip_str);
+```
+
+- **Prefix-preserving** mode ensures that IP addresses with the same prefix produce encrypted IP addresses with the same prefix.
+- The prefix can be of any length - the encryption preserves the common prefix structure.
+- Requires a 32-byte key (`IPCRYPT_PFX_KEYBYTES`).
+- The output is still a valid IP address, maintaining network topology information.
+- Useful for scenarios where you need to anonymize individual hosts while preserving network structure for analysis.
+
+### 5. Non-Deterministic Encryption / Decryption
 
 #### With 8 Byte Tweaks (ND Mode)
 
@@ -189,7 +222,7 @@ size_t ipcrypt_ndx_decrypt_ip_str(const IPCryptNDX *ipcrypt,
 
 The NDX mode is similar to the ND mode, but larger tweaks make it even more difficult to detect repeated IP addresses. The downside is that it runs at half the speed of ND mode and produces larger ciphertexts.
 
-### 5. Helper Functions
+### 6. Helper Functions
 
 ```c
 int ipcrypt_str_to_ip16(uint8_t ip16[16], const char *ip_str);
@@ -249,6 +282,58 @@ int main(void) {
 }
 ```
 
+### Prefix-Preserving Example
+
+```c
+#include <stdio.h>
+#include <string.h>
+#include "ipcrypt2.h"
+
+int main(void) {
+    // A 32-byte AES key for PFX mode
+    const uint8_t key[IPCRYPT_PFX_KEYBYTES] = {
+        0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+        0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
+        0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+        0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F
+    };
+
+    // Example IPv6 addresses
+    const char *ip1 = "2001:db8:abcd:1234:5678:90ab:cdef:0123";
+    const char *ip2 = "2001:db8:abcd:1234:aaaa:bbbb:cccc:dddd";
+    const char *ip3 = "2001:db8:9999:5555:1111:2222:3333:4444";
+
+    IPCryptPFX ctx;
+    ipcrypt_pfx_init(&ctx, key);
+
+    // Encrypt multiple IPs
+    char encrypted_ip1[IPCRYPT_MAX_IP_STR_BYTES];
+    char encrypted_ip2[IPCRYPT_MAX_IP_STR_BYTES];
+    char encrypted_ip3[IPCRYPT_MAX_IP_STR_BYTES];
+
+    ipcrypt_pfx_encrypt_ip_str(&ctx, encrypted_ip1, ip1);
+    ipcrypt_pfx_encrypt_ip_str(&ctx, encrypted_ip2, ip2);
+    ipcrypt_pfx_encrypt_ip_str(&ctx, encrypted_ip3, ip3);
+
+    // Print results
+    printf("Original IP1: %s\n", ip1);
+    printf("Encrypted   : %s\n\n", encrypted_ip1);
+
+    printf("Original IP2: %s\n", ip2);
+    printf("Encrypted   : %s\n\n", encrypted_ip2);
+
+    printf("Original IP3: %s\n", ip3);
+    printf("Encrypted   : %s\n\n", encrypted_ip3);
+
+    // Note: ip1 and ip2 share the same prefix (2001:db8:abcd:1234)
+    // so their encrypted versions will also share the same prefix
+
+    // Clean up
+    ipcrypt_pfx_deinit(&ctx);
+    return 0;
+}
+```
+
 ### Non-Deterministic Example
 
 ```c
@@ -295,7 +380,9 @@ int main(void) {
 
 1. **Key Management**
 
-   - You must provide a secure 16-byte AES key. Protect it and ensure it remains secret.
+   - Standard and ND modes require a secure 16-byte AES key.
+   - PFX and NDX modes require a secure 32-byte AES key.
+   - Protect keys and ensure they remain secret.
    - Keys should be frequently rotated.
 
 2. **Tweak Randomness** (for non-deterministic modes)

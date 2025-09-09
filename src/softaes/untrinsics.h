@@ -530,12 +530,126 @@ _mm_setr_epi8(const int8_t b0, const int8_t b1, const int8_t b2, const int8_t b3
     return r;
 }
 
+/* Set __m128i from 16 int values */
+static inline __m128i
+_mm_setr_epi32(const int e0, const int e1, const int e2, const int e3)
+{
+    __m128i v;
+    v.w[0] = (uint32_t) e0;
+    v.w[1] = (uint32_t) e1;
+    v.w[2] = (uint32_t) e2;
+    v.w[3] = (uint32_t) e3;
+    return v;
+}
+
+/* Logical right shift each 32-bit lane by imm8 */
+static inline __m128i
+_mm_srli_epi32(const __m128i v, const int imm8)
+{
+    __m128i r;
+    r.w[0] = v.w[0] >> imm8;
+    r.w[1] = v.w[1] >> imm8;
+    r.w[2] = v.w[2] >> imm8;
+    r.w[3] = v.w[3] >> imm8;
+    return r;
+}
+
+/* Logical left shift each 32-bit lane by imm8 */
+static inline __m128i
+_mm_slli_epi32(const __m128i v, const int imm8)
+{
+    __m128i r;
+    r.w[0] = v.w[0] << imm8;
+    r.w[1] = v.w[1] << imm8;
+    r.w[2] = v.w[2] << imm8;
+    r.w[3] = v.w[3] << imm8;
+    return r;
+}
+
+/* Logical right shift each 16-bit lane by imm8 */
+static inline __m128i
+_mm_srli_epi16(const __m128i v, const int imm8)
+{
+    __m128i r;
+    for (int i = 0; i < 8; i++) {
+        uint16_t val = (uint16_t)v.b[i * 2] | ((uint16_t)v.b[i * 2 + 1] << 8);
+        val >>= imm8;
+        r.b[i * 2] = (uint8_t)(val & 0xff);
+        r.b[i * 2 + 1] = (uint8_t)(val >> 8);
+    }
+    return r;
+}
+
+/* Logical left shift each 16-bit lane by imm8 */
+static inline __m128i
+_mm_slli_epi16(const __m128i v, const int imm8)
+{
+    __m128i r;
+    for (int i = 0; i < 8; i++) {
+        uint16_t val = (uint16_t)v.b[i * 2] | ((uint16_t)v.b[i * 2 + 1] << 8);
+        val <<= imm8;
+        r.b[i * 2] = (uint8_t)(val & 0xff);
+        r.b[i * 2 + 1] = (uint8_t)(val >> 8);
+    }
+    return r;
+}
+
+/* Logical right shift each 64-bit lane by imm8 */
+static inline __m128i
+_mm_srli_epi64(const __m128i v, const int imm8)
+{
+    __m128i r;
+    r.q[0] = v.q[0] >> imm8;
+    r.q[1] = v.q[1] >> imm8;
+    return r;
+}
+
+/* Logical left shift each 64-bit lane by imm8 */
+static inline __m128i
+_mm_slli_epi64(const __m128i v, const int imm8)
+{
+    __m128i r;
+    r.q[0] = v.q[0] << imm8;
+    r.q[1] = v.q[1] << imm8;
+    return r;
+}
+
 /* Set __m128i to zero */
 static inline __m128i
 _mm_setzero_si128(void)
 {
     __m128i r;
     memset(r.b, 0, 16);
+    return r;
+}
+
+/* Set all 16 bytes to the same 8-bit value */
+static inline __m128i
+_mm_set1_epi8(const int8_t a)
+{
+    __m128i r;
+    for (int i = 0; i < 16; i++)
+        r.b[i] = (uint8_t) a;
+    return r;
+}
+
+/* Add 8-bit integers in two __m128i values */
+static inline __m128i
+_mm_add_epi8(const __m128i a, const __m128i b)
+{
+    __m128i r;
+    for (int i = 0; i < 16; i++)
+        r.b[i] = (uint8_t) (a.b[i] + b.b[i]);
+    return r;
+}
+
+/* Subtract 8-bit integers in two __m128i values */
+static inline __m128i
+_mm_sub_epi8(const __m128i a, const __m128i b)
+{
+    __m128i r;
+    for (int i = 0; i < 16; i++)
+        r.b[i] = (uint8_t) (a.b[i] - b.b[i]);
     return r;
 }
 
