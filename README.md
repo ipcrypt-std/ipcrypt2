@@ -33,8 +33,8 @@ It supports both IPv4 and IPv6 addresses, and it can optionally preserve the IP 
   - [Features](#features)
   - [Table of Contents](#table-of-contents)
   - [Getting Started](#getting-started)
-  - [Building with a Traditional C Compiler](#building-with-a-traditional-c-compiler)
-  - [Building with Zig](#building-with-zig)
+  - [Building as a Static Library with Make](#building-as-a-static-library-with-make)
+  - [Building as a Static Library with Zig](#building-as-a-static-library-with-zig)
   - [API Overview](#api-overview)
     - [1. `IPCrypt` Context](#1-ipcrypt-context)
     - [2. Initialization and Deinitialization](#2-initialization-and-deinitialization)
@@ -54,25 +54,29 @@ It supports both IPv4 and IPv6 addresses, and it can optionally preserve the IP 
 
 ## Getting Started
 
-1. **Download/Clone** this repository.
-2. **Include** the library's files (`ipcrypt2.c` and `ipcrypt2.h`) in your project.
-3. **Build** and link them with your application, either via a traditional compiler or through Zig.
+`ipcrypt2` is a single C file implementation that can be directly copied into any existing project. Simply include `ipcrypt2.c` and `ipcrypt2.h` in your project and you're ready to go.
 
-## Building with a Traditional C Compiler
-
-An example using GCC or Clang might look like:
-
-```sh
-# 1. Compile the library
-gcc -c -O2 ipcrypt2.c -o ipcrypt2.o
-
-# 2. Compile your application and link with the library object
-gcc -O2 myapp.c ipcrypt2.o -o myapp
-```
+1. Download/Clone this repository.
+2. Copy `ipcrypt2.c` and `ipcrypt2.h` directly to your project.
+3. Build and link them with your application, either via a traditional compiler or through Zig.
 
 If you are cross-compiling for ARM, make sure your toolchain targets AES-enabled ARM CPUs and sets the appropriate flags.
 
-## Building with Zig
+The `untrinsics.h` file is only required on target CPUs that lack AES hardware support. On systems with AES-NI (x86_64) or AES instructions (ARM64), this file is unnecessary.
+
+Alternatively, a static library can be built.
+
+## Building as a Static Library with Make
+
+Set the appropriate `CFLAGS` if necessary and type:
+
+```sh
+make
+```
+
+The resulting library is called `libipcrypt2.a`.
+
+## Building as a Static Library with Zig
 
 Zig can compile and link C code. You can typically build the project by running:
 
@@ -90,7 +94,7 @@ The resulting library and headers will be placed into the `zig-out` directory.
 
 ## API Overview
 
-All user-facing declarations are in **ipcrypt2.h**. Here are the key structures and functions:
+All user-facing declarations are in `ipcrypt2.h`. Here are the key structures and functions:
 
 ### 1. `IPCrypt` Context
 
@@ -184,7 +188,7 @@ size_t ipcrypt_nd_decrypt_ip_str(const IPCrypt *ipcrypt,
 ```
 
 - **Non-deterministic** mode takes a random 8-byte tweak (`random[IPCRYPT_TWEAKBYTES]`).
-- Even if you encrypt the same IP multiple times with the same key, encrypted values will not be unique, which helps mitigate traffic analysis or repeated-pattern attacks.
+- Even if you encrypt the same IP multiple times with the same key, encrypted values will be unique, which helps mitigate traffic analysis or repeated-pattern attacks.
 - This mode is _not_ format-preserving: the output is 24 bytes (or 48 hex characters).
 
 #### With 16 Byte Tweaks (NDX Mode)
@@ -217,7 +221,7 @@ size_t ipcrypt_ndx_decrypt_ip_str(const IPCryptNDX *ipcrypt,
 ```
 
 - The **NDX non-deterministic** mode takes a random 16-byte tweak (`random[IPCRYPT_NDX_TWEAKBYTES]`) and a 32-byte key (`IPCRYPT_NDX_KEYBYTES`).
-- Even if you encrypt the same IP multiple times with the same key, encrypted values will not be unique, which helps mitigate traffic analysis or repeated-pattern attacks.
+- Even if you encrypt the same IP multiple times with the same key, encrypted values will be unique, which helps mitigate traffic analysis or repeated-pattern attacks.
 - This mode is _not_ format-preserving: the output is 32 bytes (or 64 hex characters).
 
 The NDX mode is similar to the ND mode, but larger tweaks make it even more difficult to detect repeated IP addresses. The downside is that it runs at half the speed of ND mode and produces larger ciphertexts.
@@ -387,7 +391,7 @@ int main(void) {
 
 2. **Tweak Randomness** (for non-deterministic modes)
 
-   - **ND mode**: the 8-byte tweak does not need to be secret; however, it should be random or unique for each encryption to prevent predictable patterns. While collisions may become become a statistical concern after approximately 2^32 encryptions of the same IP address with the same key, they do not directly expose the IP address without the key.
+   - **ND mode**: the 8-byte tweak does not need to be secret; however, it should be random or unique for each encryption to prevent predictable patterns. While collisions may become a statistical concern after approximately 2^32 encryptions of the same IP address with the same key, they do not directly expose the IP address without the key.
    - **NDX mode**: the 16-byte tweak does not need to be secret; however, it should be random or unique for each encryption to prevent predictable patterns. Collisions become a statistical concern after approximately 2^64 encryptions of the same IP address with the same key. They only reveal the fact that an IP address was observed multiple times, but not the IP address itself.
 
 3. **IP Format Preservation**
