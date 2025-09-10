@@ -58,13 +58,17 @@ It supports both IPv4 and IPv6 addresses, and it can optionally preserve the IP 
 
 1. Download/Clone this repository.
 2. Copy `ipcrypt2.c` and `ipcrypt2.h` directly to your project.
-3. Build and link them with your application, either via a traditional compiler or through Zig.
+3. Build and link them with your application.
 
 If you are cross-compiling for ARM, make sure your toolchain targets AES-enabled ARM CPUs and sets the appropriate flags.
 
 The `untrinsics.h` file is only required on target CPUs that lack AES hardware support. On systems with AES-NI (x86_64) or AES instructions (ARM64), this file is unnecessary.
 
-Alternatively, a static library can be built.
+Alternatively, you can build `ipcrypt2` as a static library. This is useful when you want to:
+
+- Use the library across multiple projects without copying source files
+- Manage dependencies more cleanly in larger codebases
+- Integrate with build systems that prefer library dependencies
 
 ## Building as a Static Library with Make
 
