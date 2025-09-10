@@ -973,23 +973,23 @@ void
 ipcrypt_pfx_encrypt_ip16(const IPCryptPFX *ipcrypt, uint8_t ip16[16])
 {
     PFXState     st;
-    BlockVec     e1, e2, e;
+    BlockVec     e1_0, e2_0, e_0, e1_1, e2_1, e_1;
     uint8_t      encrypted_ip[16];
-    uint8_t      padded_prefix[16];
-    uint8_t      t[16];
+    uint8_t      padded_prefix_0[16], padded_prefix_1[16];
+    uint8_t      t_0[16], t_1[16];
     size_t       i;
-    unsigned int bit_pos;
+    unsigned int bit_pos_0, bit_pos_1;
     unsigned int prefix_start = 0;
     unsigned int prefix_len_bits;
-    uint8_t      cipher_bit;
-    uint8_t      original_bit;
+    uint8_t      cipher_bit_0, cipher_bit_1;
+    uint8_t      original_bit_0, original_bit_1;
 
     memcpy(&st, ipcrypt->opaque, sizeof st);
     if (ipcrypt_is_mapped_ipv4(ip16)) {
         prefix_start = 96;
     }
 
-    ipcrypt_pfx_pad_prefix(padded_prefix, prefix_start);
+    ipcrypt_pfx_pad_prefix(padded_prefix_0, prefix_start);
 
     memset(encrypted_ip, 0, 16);
     if (prefix_start == 96) {
@@ -997,38 +997,77 @@ ipcrypt_pfx_encrypt_ip16(const IPCryptPFX *ipcrypt, uint8_t ip16[16])
         encrypted_ip[11] = 0xff;
     }
 
-    for (prefix_len_bits = prefix_start; prefix_len_bits < 128; prefix_len_bits++) {
+    // Process two bits per iteration for better parallelism
+    for (prefix_len_bits = prefix_start; prefix_len_bits < 128; prefix_len_bits += 2) {
+        // Prepare padded_prefix_1 for the second iteration
+        memcpy(padded_prefix_1, padded_prefix_0, 16);
+        bit_pos_0      = 127 - prefix_len_bits;
+        original_bit_0 = ipcrypt_pfx_get_bit(ip16, bit_pos_0);
+        ipcrypt_pfx_shift_left(padded_prefix_1);
+        ipcrypt_pfx_set_bit(padded_prefix_1, 0, original_bit_0);
+
 #ifdef AES_XENCRYPT
-        // For AArch64 with AES_XENCRYPT macros.
-        e1 = AES_XENCRYPT(LOAD128(padded_prefix), st.k1keys[0]);
-        e2 = AES_XENCRYPT(LOAD128(padded_prefix), st.k2keys[0]);
+        // For AArch64 with AES_XENCRYPT macros - process two encryptions in parallel
+        e1_0 = AES_XENCRYPT(LOAD128(padded_prefix_0), st.k1keys[0]);
+        e2_0 = AES_XENCRYPT(LOAD128(padded_prefix_0), st.k2keys[0]);
+        e1_1 = AES_XENCRYPT(LOAD128(padded_prefix_1), st.k1keys[0]);
+        e2_1 = AES_XENCRYPT(LOAD128(padded_prefix_1), st.k2keys[0]);
+
         for (i = 1; i < ROUNDS - 1; i++) {
-            e1 = AES_XENCRYPT(e1, st.k1keys[i]);
-            e2 = AES_XENCRYPT(e2, st.k2keys[i]);
+            e1_0 = AES_XENCRYPT(e1_0, st.k1keys[i]);
+            e2_0 = AES_XENCRYPT(e2_0, st.k2keys[i]);
+            e1_1 = AES_XENCRYPT(e1_1, st.k1keys[i]);
+            e2_1 = AES_XENCRYPT(e2_1, st.k2keys[i]);
         }
-        e1 = AES_XENCRYPTLAST(e1, st.k1keys[i]);
-        e2 = AES_XENCRYPTLAST(e2, st.k2keys[i]);
-        e1 = XOR128(e1, st.k1keys[ROUNDS]);
-        e2 = XOR128(e2, st.k2keys[ROUNDS]);
+
+        e1_0 = AES_XENCRYPTLAST(e1_0, st.k1keys[i]);
+        e2_0 = AES_XENCRYPTLAST(e2_0, st.k2keys[i]);
+        e1_1 = AES_XENCRYPTLAST(e1_1, st.k1keys[i]);
+        e2_1 = AES_XENCRYPTLAST(e2_1, st.k2keys[i]);
+
+        e1_0 = XOR128(e1_0, st.k1keys[ROUNDS]);
+        e2_0 = XOR128(e2_0, st.k2keys[ROUNDS]);
+        e1_1 = XOR128(e1_1, st.k1keys[ROUNDS]);
+        e2_1 = XOR128(e2_1, st.k2keys[ROUNDS]);
 #else
-        // For x86_64 or a fallback.
-        e1 = XOR128(LOAD128(padded_prefix), st.k1keys[0]);
-        e2 = XOR128(LOAD128(padded_prefix), st.k2keys[0]);
+        // For x86_64 or a fallback - process two encryptions in parallel
+        e1_0 = XOR128(LOAD128(padded_prefix_0), st.k1keys[0]);
+        e2_0 = XOR128(LOAD128(padded_prefix_0), st.k2keys[0]);
+        e1_1 = XOR128(LOAD128(padded_prefix_1), st.k1keys[0]);
+        e2_1 = XOR128(LOAD128(padded_prefix_1), st.k2keys[0]);
+
         for (i = 1; i < ROUNDS; i++) {
-            e1 = AES_ENCRYPT(e1, st.k1keys[i]);
-            e2 = AES_ENCRYPT(e2, st.k2keys[i]);
+            e1_0 = AES_ENCRYPT(e1_0, st.k1keys[i]);
+            e2_0 = AES_ENCRYPT(e2_0, st.k2keys[i]);
+            e1_1 = AES_ENCRYPT(e1_1, st.k1keys[i]);
+            e2_1 = AES_ENCRYPT(e2_1, st.k2keys[i]);
         }
-        e1 = AES_ENCRYPTLAST(e1, st.k1keys[ROUNDS]);
-        e2 = AES_ENCRYPTLAST(e2, st.k2keys[ROUNDS]);
+
+        e1_0 = AES_ENCRYPTLAST(e1_0, st.k1keys[ROUNDS]);
+        e2_0 = AES_ENCRYPTLAST(e2_0, st.k2keys[ROUNDS]);
+        e1_1 = AES_ENCRYPTLAST(e1_1, st.k1keys[ROUNDS]);
+        e2_1 = AES_ENCRYPTLAST(e2_1, st.k2keys[ROUNDS]);
 #endif
-        e = XOR128(e1, e2);
-        STORE128(t, e);
-        cipher_bit   = t[15] & 1;
-        bit_pos      = 127 - prefix_len_bits;
-        original_bit = ipcrypt_pfx_get_bit(ip16, bit_pos);
-        ipcrypt_pfx_set_bit(encrypted_ip, bit_pos, original_bit ^ cipher_bit);
-        ipcrypt_pfx_shift_left(padded_prefix);
-        ipcrypt_pfx_set_bit(padded_prefix, 0, original_bit);
+
+        // Process results for first bit
+        e_0 = XOR128(e1_0, e2_0);
+        STORE128(t_0, e_0);
+        cipher_bit_0 = t_0[15] & 1;
+
+        // Process results for second bit
+        e_1 = XOR128(e1_1, e2_1);
+        STORE128(t_1, e_1);
+        cipher_bit_1   = t_1[15] & 1;
+        bit_pos_1      = bit_pos_0 - 1;
+        original_bit_1 = ipcrypt_pfx_get_bit(ip16, bit_pos_1);
+
+        ipcrypt_pfx_set_bit(encrypted_ip, bit_pos_0, original_bit_0 ^ cipher_bit_0);
+        ipcrypt_pfx_set_bit(encrypted_ip, bit_pos_1, original_bit_1 ^ cipher_bit_1);
+
+        // Update padded_prefix_0 for next iteration
+        ipcrypt_pfx_shift_left(padded_prefix_1);
+        ipcrypt_pfx_set_bit(padded_prefix_1, 0, original_bit_1);
+        memcpy(padded_prefix_0, padded_prefix_1, 16);
     }
     memcpy(ip16, encrypted_ip, 16);
 }
