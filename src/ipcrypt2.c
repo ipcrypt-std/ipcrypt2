@@ -56,6 +56,18 @@
 #    define __vectorcall
 #endif
 
+#ifndef HAVE_EXPLICIT_BZERO
+#    if (defined(__OpenBSD__) || defined(__FreeBSD__) || defined(__NetBSD__) || \
+         defined(__DragonFly__)) ||                                             \
+        (defined(__sun) && defined(__illumos__))
+#        define HAVE_EXPLICIT_BZERO 1
+#    elif defined(__GLIBC__) && defined(__GLIBC_PREREQ) && defined(_GNU_SOURCE)
+#        if __GLIBC_PREREQ(2, 25)
+#            define HAVE_EXPLICIT_BZERO 1
+#        endif
+#    endif
+#endif
+
 #ifdef __aarch64__
 #    ifndef __ARM_FEATURE_CRYPTO
 #        define __ARM_FEATURE_CRYPTO 1
@@ -336,8 +348,7 @@ typedef struct PFXState {
  * st: the AesState structure to be populated.
  * key: a 16-byte AES key.
  */
-static void __vectorcall
-expand_key(KeySchedule rkeys, const unsigned char key[IPCRYPT_KEYBYTES])
+static void __vectorcall expand_key(KeySchedule rkeys, const unsigned char key[IPCRYPT_KEYBYTES])
 {
     BlockVec t, s;
     size_t   i = 0;
@@ -659,6 +670,32 @@ hex2bin(uint8_t *bin, size_t bin_maxlen, const char *hex, size_t hex_len)
 }
 
 /**
+ * ipcrypt_zeroize securely zeroes a memory region of length len starting at pnt.
+ * This function attempts to prevent the compiler from optimizing away the zeroing.
+ */
+static void
+ipcrypt_zeroize(void *pnt, size_t len)
+{
+#ifdef HAVE_EXPLICIT_BZERO
+    explicit_bzero(pnt, len);
+#elif defined(_MSC_VER)
+    SecureZeroMemory(pnt, len);
+#elif defined(__STDC_LIB_EXT1__)
+    memset_s(pnt, len, 0, len);
+#elif defined(__GNUC__) || defined(__clang__)
+    memset(pnt, 0, len);
+    // Compiler barrier to prevent optimizations from removing memset.
+    __asm__ __volatile__("" : : "r"(pnt) : "memory");
+#else
+    volatile unsigned char *volatile pnt_ = (volatile unsigned char *volatile) pnt;
+    size_t i                              = (size_t) 0U;
+    while (i < len) {
+        pnt_[i++] = 0U;
+    }
+#endif
+}
+
+/**
  * Convert a hexadecimal string to a secret key.
  *
  * The input string must be exactly 32 or 64 characters long (IPCRYPT_KEYBYTES or
@@ -862,19 +899,7 @@ ipcrypt_init(IPCrypt *ipcrypt, const uint8_t key[IPCRYPT_KEYBYTES])
 void
 ipcrypt_deinit(IPCrypt *ipcrypt)
 {
-#ifdef HAVE_EXPLICIT_BZERO
-    explicit_bzero(ipcrypt, sizeof *ipcrypt);
-#elif defined (_MSC_VER)
-    SecureZeroMemory(ipcrypt, sizeof *ipcrypt);
-#elif defined(__STDC_LIB_EXT1__)
-    memset_s(ipcrypt, sizeof *ipcrypt, 0, sizeof *ipcrypt);
-#else
-    memset(ipcrypt, 0, sizeof *ipcrypt);
-// Compiler barrier to prevent optimizations from removing memset.
-#    if defined(__GNUC__) || defined(__clang__)
-    __asm__ __volatile__("" : : "r"(ipcrypt) : "memory");
-#    endif
-#endif
+    ipcrypt_zeroize(ipcrypt, sizeof *ipcrypt);
 }
 
 /**
@@ -899,19 +924,7 @@ ipcrypt_pfx_init(IPCryptPFX *ipcrypt, const uint8_t key[IPCRYPT_PFX_KEYBYTES])
 void
 ipcrypt_pfx_deinit(IPCryptPFX *ipcrypt)
 {
-#ifdef HAVE_EXPLICIT_BZERO
-    explicit_bzero(ipcrypt, sizeof *ipcrypt);
-#elif defined (_MSC_VER)
-    SecureZeroMemory(ipcrypt, sizeof *ipcrypt);
-#elif defined(__STDC_LIB_EXT1__)
-    memset_s(ipcrypt, sizeof *ipcrypt, 0, sizeof *ipcrypt);
-#else
-    memset(ipcrypt, 0, sizeof *ipcrypt);
-// Compiler barrier to prevent optimizations from removing memset.
-#    if defined(__GNUC__) || defined(__clang__)
-    __asm__ __volatile__("" : : "r"(ipcrypt) : "memory");
-#    endif
-#endif
+    ipcrypt_zeroize(ipcrypt, sizeof *ipcrypt);
 }
 
 static int
@@ -1206,19 +1219,7 @@ ipcrypt_ndx_init(IPCryptNDX *ipcrypt, const uint8_t key[IPCRYPT_NDX_KEYBYTES])
 void
 ipcrypt_ndx_deinit(IPCryptNDX *ipcrypt)
 {
-#ifdef HAVE_EXPLICIT_BZERO
-    explicit_bzero(ipcrypt, sizeof *ipcrypt);
-#elif defined (_MSC_VER)
-    SecureZeroMemory(ipcrypt, sizeof *ipcrypt);
-#elif defined(__STDC_LIB_EXT1__)
-    memset_s(ipcrypt, sizeof *ipcrypt, 0, sizeof *ipcrypt);
-#else
-    memset(ipcrypt, 0, sizeof *ipcrypt);
-// Compiler barrier to prevent optimizations from removing memset.
-#    if defined(__GNUC__) || defined(__clang__)
-    __asm__ __volatile__("" : : "r"(ipcrypt) : "memory");
-#    endif
-#endif
+    ipcrypt_zeroize(ipcrypt, sizeof *ipcrypt);
 }
 
 /**
