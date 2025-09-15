@@ -862,7 +862,9 @@ ipcrypt_init(IPCrypt *ipcrypt, const uint8_t key[IPCRYPT_KEYBYTES])
 void
 ipcrypt_deinit(IPCrypt *ipcrypt)
 {
-#ifdef _MSC_VER
+#ifdef HAVE_EXPLICIT_BZERO
+    explicit_bzero(ipcrypt, sizeof *ipcrypt);
+#elif defined (_MSC_VER)
     SecureZeroMemory(ipcrypt, sizeof *ipcrypt);
 #elif defined(__STDC_LIB_EXT1__)
     memset_s(ipcrypt, sizeof *ipcrypt, 0, sizeof *ipcrypt);
@@ -897,7 +899,9 @@ ipcrypt_pfx_init(IPCryptPFX *ipcrypt, const uint8_t key[IPCRYPT_PFX_KEYBYTES])
 void
 ipcrypt_pfx_deinit(IPCryptPFX *ipcrypt)
 {
-#ifdef _MSC_VER
+#ifdef HAVE_EXPLICIT_BZERO
+    explicit_bzero(ipcrypt, sizeof *ipcrypt);
+#elif defined (_MSC_VER)
     SecureZeroMemory(ipcrypt, sizeof *ipcrypt);
 #elif defined(__STDC_LIB_EXT1__)
     memset_s(ipcrypt, sizeof *ipcrypt, 0, sizeof *ipcrypt);
@@ -1202,7 +1206,9 @@ ipcrypt_ndx_init(IPCryptNDX *ipcrypt, const uint8_t key[IPCRYPT_NDX_KEYBYTES])
 void
 ipcrypt_ndx_deinit(IPCryptNDX *ipcrypt)
 {
-#ifdef _MSC_VER
+#ifdef HAVE_EXPLICIT_BZERO
+    explicit_bzero(ipcrypt, sizeof *ipcrypt);
+#elif defined (_MSC_VER)
     SecureZeroMemory(ipcrypt, sizeof *ipcrypt);
 #elif defined(__STDC_LIB_EXT1__)
     memset_s(ipcrypt, sizeof *ipcrypt, 0, sizeof *ipcrypt);
