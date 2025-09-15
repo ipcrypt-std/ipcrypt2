@@ -70,6 +70,8 @@ Alternatively, you can build `ipcrypt2` as a static library. This is useful when
 - Manage dependencies more cleanly in larger codebases
 - Integrate with build systems that prefer library dependencies
 
+To use `explicit_bzero` to zero-out secrets on de-initialization, define `HAVE_EXPLICIT_BZERO` in your build system.
+
 ## Building as a Static Library with Make
 
 Set the appropriate `CFLAGS` if necessary and type:
