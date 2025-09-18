@@ -217,8 +217,10 @@ typedef struct IPCryptPFX {
  * The key must:
  * - Be exactly IPCRYPT_PFX_KEYBYTES bytes.
  * - Be secret and randomly generated.
+ *
+ * Returns 0 on success.
  */
-void ipcrypt_pfx_init(IPCryptPFX *ipcrypt, const uint8_t key[IPCRYPT_PFX_KEYBYTES]);
+int ipcrypt_pfx_init(IPCryptPFX *ipcrypt, const uint8_t key[IPCRYPT_PFX_KEYBYTES]);
 
 /**
  * Securely clear and deinitialize the IPCryptPFX context.
@@ -280,8 +282,10 @@ typedef struct IPCryptNDX {
  * The key must:
  * - Be exactly IPCRYPT_NDX_KEYBYTES bytes.
  * - Be secret and randomly generated.
+ *
+ * Returns 0 on success.
  */
-void ipcrypt_ndx_init(IPCryptNDX *ipcrypt, const uint8_t key[IPCRYPT_NDX_KEYBYTES]);
+int ipcrypt_ndx_init(IPCryptNDX *ipcrypt, const uint8_t key[IPCRYPT_NDX_KEYBYTES]);
 
 /**
  * Securely clear and deinitialize the IPCryptNDX context.

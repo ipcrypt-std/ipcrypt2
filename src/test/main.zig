@@ -97,7 +97,7 @@ test "binary ip NDX encryption and decryption" {
     const key = "0123456789abcdef1032547698badcfe";
     const tweak: [16]u8 = .{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
     var st: ipcrypt.IPCryptNDX = undefined;
-    ipcrypt.ipcrypt_ndx_init(&st, key);
+    _ = ipcrypt.ipcrypt_ndx_init(&st, key);
     defer ipcrypt.ipcrypt_ndx_deinit(&st);
     var encrypted_ip: [ipcrypt.IPCRYPT_NDX_NDIP_BYTES]u8 = undefined;
     ipcrypt.ipcrypt_ndx_encrypt_ip16(&st, &encrypted_ip, &ip, &tweak);
@@ -109,7 +109,7 @@ test "binary ip NDX encryption and decryption" {
 test "ip string NDX encryption and decryption" {
     const key = "0123456789abcdef1032547698badcfe";
     var st: ipcrypt.IPCryptNDX = undefined;
-    ipcrypt.ipcrypt_ndx_init(&st, key);
+    _ = ipcrypt.ipcrypt_ndx_init(&st, key);
     defer ipcrypt.ipcrypt_ndx_deinit(&st);
 
     const ip_str = "1.2.3.4";
@@ -207,7 +207,7 @@ test "test vector 1 for ipcrypt-ndx" {
     var tweak: [16]u8 = undefined;
     _ = try std.fmt.hexToBytes(&tweak, tweak_hex);
     var st: ipcrypt.IPCryptNDX = undefined;
-    ipcrypt.ipcrypt_ndx_init(&st, &key);
+    _ = ipcrypt.ipcrypt_ndx_init(&st, &key);
     defer ipcrypt.ipcrypt_ndx_deinit(&st);
     var encrypted_ip_buf: [ipcrypt.IPCRYPT_NDX_NDIP_STR_BYTES:0]u8 = undefined;
     const encrypted_ip_len = ipcrypt.ipcrypt_ndx_encrypt_ip_str(&st, &encrypted_ip_buf, ip_str, &tweak);
@@ -225,7 +225,7 @@ test "test vector 2 for ipcrypt-ndx" {
     var tweak: [16]u8 = undefined;
     _ = try std.fmt.hexToBytes(&tweak, tweak_hex);
     var st: ipcrypt.IPCryptNDX = undefined;
-    ipcrypt.ipcrypt_ndx_init(&st, &key);
+    _ = ipcrypt.ipcrypt_ndx_init(&st, &key);
     defer ipcrypt.ipcrypt_ndx_deinit(&st);
     var encrypted_ip_buf: [ipcrypt.IPCRYPT_NDX_NDIP_STR_BYTES:0]u8 = undefined;
     const encrypted_ip_len = ipcrypt.ipcrypt_ndx_encrypt_ip_str(&st, &encrypted_ip_buf, ip_str, &tweak);
@@ -243,7 +243,7 @@ test "test vector 3 for ipcrypt-ndx" {
     var tweak: [16]u8 = undefined;
     _ = try std.fmt.hexToBytes(&tweak, tweak_hex);
     var st: ipcrypt.IPCryptNDX = undefined;
-    ipcrypt.ipcrypt_ndx_init(&st, &key);
+    _ = ipcrypt.ipcrypt_ndx_init(&st, &key);
     defer ipcrypt.ipcrypt_ndx_deinit(&st);
     var encrypted_ip_buf: [ipcrypt.IPCRYPT_NDX_NDIP_STR_BYTES:0]u8 = undefined;
     const encrypted_ip_len = ipcrypt.ipcrypt_ndx_encrypt_ip_str(&st, &encrypted_ip_buf, ip_str, &tweak);
@@ -311,7 +311,7 @@ test "ipcrypt-pfx round-trip" {
     _ = try std.fmt.hexToBytes(&key, key_hex);
 
     var st: ipcrypt.IPCryptPFX = undefined;
-    ipcrypt.ipcrypt_pfx_init(&st, &key);
+    _ = ipcrypt.ipcrypt_pfx_init(&st, &key);
     defer ipcrypt.ipcrypt_pfx_deinit(&st);
 
     // Test with IPv4 address string
@@ -365,7 +365,7 @@ test "ipcrypt-pfx test vectors from python reference" {
         _ = try std.fmt.hexToBytes(&key, key_hex);
 
         var st: ipcrypt.IPCryptPFX = undefined;
-        ipcrypt.ipcrypt_pfx_init(&st, &key);
+        _ = ipcrypt.ipcrypt_pfx_init(&st, &key);
         defer ipcrypt.ipcrypt_pfx_deinit(&st);
 
         const ip_str = "0.0.0.0";
@@ -385,7 +385,7 @@ test "ipcrypt-pfx test vectors from python reference" {
         _ = try std.fmt.hexToBytes(&key, key_hex);
 
         var st: ipcrypt.IPCryptPFX = undefined;
-        ipcrypt.ipcrypt_pfx_init(&st, &key);
+        _ = ipcrypt.ipcrypt_pfx_init(&st, &key);
         defer ipcrypt.ipcrypt_pfx_deinit(&st);
 
         const ip_str = "255.255.255.255";
@@ -405,7 +405,7 @@ test "ipcrypt-pfx test vectors from python reference" {
         _ = try std.fmt.hexToBytes(&key, key_hex);
 
         var st: ipcrypt.IPCryptPFX = undefined;
-        ipcrypt.ipcrypt_pfx_init(&st, &key);
+        _ = ipcrypt.ipcrypt_pfx_init(&st, &key);
         defer ipcrypt.ipcrypt_pfx_deinit(&st);
 
         const ip_str = "192.0.2.1";
@@ -425,7 +425,7 @@ test "ipcrypt-pfx test vectors from python reference" {
         _ = try std.fmt.hexToBytes(&key, key_hex);
 
         var st: ipcrypt.IPCryptPFX = undefined;
-        ipcrypt.ipcrypt_pfx_init(&st, &key);
+        _ = ipcrypt.ipcrypt_pfx_init(&st, &key);
         defer ipcrypt.ipcrypt_pfx_deinit(&st);
 
         const ip_str = "2001:db8::1";
@@ -446,7 +446,7 @@ test "ipcrypt-pfx test vectors from python reference" {
         _ = try std.fmt.hexToBytes(&key, key_hex);
 
         var st: ipcrypt.IPCryptPFX = undefined;
-        ipcrypt.ipcrypt_pfx_init(&st, &key);
+        _ = ipcrypt.ipcrypt_pfx_init(&st, &key);
         defer ipcrypt.ipcrypt_pfx_deinit(&st);
 
         const ip_str = "10.0.0.47";
@@ -466,7 +466,7 @@ test "ipcrypt-pfx test vectors from python reference" {
         _ = try std.fmt.hexToBytes(&key, key_hex);
 
         var st: ipcrypt.IPCryptPFX = undefined;
-        ipcrypt.ipcrypt_pfx_init(&st, &key);
+        _ = ipcrypt.ipcrypt_pfx_init(&st, &key);
         defer ipcrypt.ipcrypt_pfx_deinit(&st);
 
         const ip_str = "10.0.0.129";
@@ -486,7 +486,7 @@ test "ipcrypt-pfx test vectors from python reference" {
         _ = try std.fmt.hexToBytes(&key, key_hex);
 
         var st: ipcrypt.IPCryptPFX = undefined;
-        ipcrypt.ipcrypt_pfx_init(&st, &key);
+        _ = ipcrypt.ipcrypt_pfx_init(&st, &key);
         defer ipcrypt.ipcrypt_pfx_deinit(&st);
 
         const ip_str = "10.0.0.234";
@@ -506,7 +506,7 @@ test "ipcrypt-pfx test vectors from python reference" {
         _ = try std.fmt.hexToBytes(&key, key_hex);
 
         var st: ipcrypt.IPCryptPFX = undefined;
-        ipcrypt.ipcrypt_pfx_init(&st, &key);
+        _ = ipcrypt.ipcrypt_pfx_init(&st, &key);
         defer ipcrypt.ipcrypt_pfx_deinit(&st);
 
         const ip_str = "172.16.5.193";
@@ -526,7 +526,7 @@ test "ipcrypt-pfx test vectors from python reference" {
         _ = try std.fmt.hexToBytes(&key, key_hex);
 
         var st: ipcrypt.IPCryptPFX = undefined;
-        ipcrypt.ipcrypt_pfx_init(&st, &key);
+        _ = ipcrypt.ipcrypt_pfx_init(&st, &key);
         defer ipcrypt.ipcrypt_pfx_deinit(&st);
 
         const ip_str = "172.16.97.42";
@@ -546,7 +546,7 @@ test "ipcrypt-pfx test vectors from python reference" {
         _ = try std.fmt.hexToBytes(&key, key_hex);
 
         var st: ipcrypt.IPCryptPFX = undefined;
-        ipcrypt.ipcrypt_pfx_init(&st, &key);
+        _ = ipcrypt.ipcrypt_pfx_init(&st, &key);
         defer ipcrypt.ipcrypt_pfx_deinit(&st);
 
         const ip_str = "172.16.248.177";
@@ -567,7 +567,7 @@ test "ipcrypt-pfx test vectors from python reference" {
         _ = try std.fmt.hexToBytes(&key, key_hex);
 
         var st: ipcrypt.IPCryptPFX = undefined;
-        ipcrypt.ipcrypt_pfx_init(&st, &key);
+        _ = ipcrypt.ipcrypt_pfx_init(&st, &key);
         defer ipcrypt.ipcrypt_pfx_deinit(&st);
 
         const ip_str = "2001:db8::a5c9:4e2f:bb91:5a7d";
@@ -587,7 +587,7 @@ test "ipcrypt-pfx test vectors from python reference" {
         _ = try std.fmt.hexToBytes(&key, key_hex);
 
         var st: ipcrypt.IPCryptPFX = undefined;
-        ipcrypt.ipcrypt_pfx_init(&st, &key);
+        _ = ipcrypt.ipcrypt_pfx_init(&st, &key);
         defer ipcrypt.ipcrypt_pfx_deinit(&st);
 
         const ip_str = "2001:db8::7234:d8f1:3c6e:9a52";
@@ -607,7 +607,7 @@ test "ipcrypt-pfx test vectors from python reference" {
         _ = try std.fmt.hexToBytes(&key, key_hex);
 
         var st: ipcrypt.IPCryptPFX = undefined;
-        ipcrypt.ipcrypt_pfx_init(&st, &key);
+        _ = ipcrypt.ipcrypt_pfx_init(&st, &key);
         defer ipcrypt.ipcrypt_pfx_deinit(&st);
 
         const ip_str = "2001:db8::f1e0:937b:26d4:8c1a";
@@ -627,7 +627,7 @@ test "ipcrypt-pfx test vectors from python reference" {
         _ = try std.fmt.hexToBytes(&key, key_hex);
 
         var st: ipcrypt.IPCryptPFX = undefined;
-        ipcrypt.ipcrypt_pfx_init(&st, &key);
+        _ = ipcrypt.ipcrypt_pfx_init(&st, &key);
         defer ipcrypt.ipcrypt_pfx_deinit(&st);
 
         const ip_str = "2001:db8:3a5c::e7d1:4b9f:2c8a:f673";
@@ -647,7 +647,7 @@ test "ipcrypt-pfx test vectors from python reference" {
         _ = try std.fmt.hexToBytes(&key, key_hex);
 
         var st: ipcrypt.IPCryptPFX = undefined;
-        ipcrypt.ipcrypt_pfx_init(&st, &key);
+        _ = ipcrypt.ipcrypt_pfx_init(&st, &key);
         defer ipcrypt.ipcrypt_pfx_deinit(&st);
 
         const ip_str = "2001:db8:9f27::b4e2:7a3d:5f91:c8e6";
@@ -667,7 +667,7 @@ test "ipcrypt-pfx test vectors from python reference" {
         _ = try std.fmt.hexToBytes(&key, key_hex);
 
         var st: ipcrypt.IPCryptPFX = undefined;
-        ipcrypt.ipcrypt_pfx_init(&st, &key);
+        _ = ipcrypt.ipcrypt_pfx_init(&st, &key);
         defer ipcrypt.ipcrypt_pfx_deinit(&st);
 
         const ip_str = "2001:db8:d8b4::193c:a5e7:8b2f:46d1";

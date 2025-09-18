@@ -905,16 +905,38 @@ ipcrypt_deinit(IPCrypt *ipcrypt)
 /**
  * ipcrypt_pfx_init initializes the IPCryptPFX context with a 32-byte secret key.
  * This prepares the context for prefix-preserving IP address encryption operations.
+ * Returns 0 on success.
  */
-void
+int
 ipcrypt_pfx_init(IPCryptPFX *ipcrypt, const uint8_t key[IPCRYPT_PFX_KEYBYTES])
 {
     PFXState st;
+    uint8_t  diff[16];
+    size_t   i;
+    uint8_t  d;
 
     expand_key(st.k1keys, key);
     expand_key(st.k2keys, key + 16);
+
+    /**
+     * Ensure the two keys differ in case of misuse.
+     */
+    STORE128(diff, XOR128(st.k1keys[ROUNDS / 2], st.k2keys[ROUNDS / 2]));
+    d = 0;
+    for (i = 0; i < 16; i++) {
+        d |= diff[i];
+    }
+    if (d == 0) {
+        for (i = 0; i < 16; i++) {
+            diff[i] = key[i] ^ 0x5a;
+        }
+        expand_key(st.k2keys, diff);
+    }
+
     COMPILER_ASSERT(sizeof ipcrypt->opaque >= sizeof st);
     memcpy(ipcrypt->opaque, &st, sizeof st);
+
+    return -(d == 0);
 }
 
 /**
@@ -1201,16 +1223,38 @@ ipcrypt_pfx_decrypt_ip_str(const IPCryptPFX *ipcrypt,
 /**
  * ipcrypt_init initializes an IPCrypt context with a 16-byte key.
  * Expands the key into round keys and stores them in ipcrypt->opaque.
+ * Returns 0 on success.
  */
-void
+int
 ipcrypt_ndx_init(IPCryptNDX *ipcrypt, const uint8_t key[IPCRYPT_NDX_KEYBYTES])
 {
     NDXState st;
+    uint8_t  diff[16];
+    size_t   i;
+    uint8_t  d;
 
     expand_key(st.tkeys, key + 16);
     expand_key(st.rkeys, key);
+
+    /**
+     * Ensure the two keys differ in case of misuse.
+     */
+    STORE128(diff, XOR128(st.tkeys[ROUNDS / 2], st.rkeys[ROUNDS / 2]));
+    d = 0;
+    for (i = 0; i < 16; i++) {
+        d |= diff[i];
+    }
+    if (d == 0) {
+        for (i = 0; i < 16; i++) {
+            diff[i] = key[i] ^ 0x5a;
+        }
+        expand_key(st.rkeys, diff);
+    }
+
     COMPILER_ASSERT(sizeof ipcrypt->opaque >= sizeof st);
     memcpy(ipcrypt->opaque, &st, sizeof st);
+
+    return -(d == 0);
 }
 
 /**
