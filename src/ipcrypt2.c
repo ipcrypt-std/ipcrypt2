@@ -1485,7 +1485,7 @@ ipcrypt_ndx_decrypt_ip_str(const IPCryptNDX *ipcrypt, char ip_str[IPCRYPT_MAX_IP
     uint8_t ip16[16];
     uint8_t ndip[IPCRYPT_NDX_NDIP_BYTES];
     memset(ip_str, 0, IPCRYPT_MAX_IP_STR_BYTES);
-    // Convert the hex string back to a 24-byte buffer.
+    // Convert the hex string back to a 32-byte buffer.
     if (hex2bin(ndip, sizeof ndip, encrypted_ip_str, strlen(encrypted_ip_str)) != sizeof ndip) {
         return 0;
     }
