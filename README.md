@@ -54,10 +54,10 @@ It supports both IPv4 and IPv6 addresses, and it can optionally preserve the IP 
 
 ## Getting Started
 
-`ipcrypt2` is a single C file implementation that can be directly copied into any existing project. Simply include `ipcrypt2.c` and `ipcrypt2.h` in your project and you're ready to go.
+`ipcrypt2` is a single C file implementation that can be directly copied into any existing project. Simply include `src/ipcrypt2.c` and `src/include/ipcrypt2.h` in your project and you're ready to go.
 
 1. Download/Clone this repository.
-2. Copy `ipcrypt2.c` and `ipcrypt2.h` directly to your project.
+2. Copy `src/ipcrypt2.c` and `src/include/ipcrypt2.h` directly to your project.
 3. Build and link them with your application.
 
 If you are cross-compiling for ARM, make sure your toolchain targets AES-enabled ARM CPUs and sets the appropriate flags.
@@ -80,7 +80,7 @@ Set the appropriate `CFLAGS` if necessary and type:
 make
 ```
 
-The resulting library is called `libipcrypt2.a`.
+The resulting library is called `libipcrypt2.a`. The header file will be installed from `src/include/ipcrypt2.h`.
 
 ## Building as a Static Library with Zig
 
@@ -100,7 +100,7 @@ The resulting library and headers will be placed into the `zig-out` directory.
 
 ## API Overview
 
-All user-facing declarations are in `ipcrypt2.h`. Here are the key structures and functions:
+All user-facing declarations are in `src/include/ipcrypt2.h`. Here are the key structures and functions:
 
 ### 1. `IPCrypt` Context
 
@@ -166,6 +166,7 @@ size_t ipcrypt_pfx_decrypt_ip_str(const IPCryptPFX *ipcrypt,
 - **Prefix-preserving** mode ensures that IP addresses with the same prefix produce encrypted IP addresses with the same prefix.
 - The prefix can be of any length - the encryption preserves the common prefix structure.
 - Requires a 32-byte key (`IPCRYPT_PFX_KEYBYTES`).
+- Returns 0 on success.
 - The output is still a valid IP address, maintaining network topology information.
 - Useful for scenarios where you need to anonymize individual hosts while preserving network structure for analysis.
 
@@ -227,6 +228,7 @@ size_t ipcrypt_ndx_decrypt_ip_str(const IPCryptNDX *ipcrypt,
 ```
 
 - The **NDX non-deterministic** mode takes a random 16-byte tweak (`random[IPCRYPT_NDX_TWEAKBYTES]`) and a 32-byte key (`IPCRYPT_NDX_KEYBYTES`).
+- Returns 0 on success.
 - Even if you encrypt the same IP multiple times with the same key, encrypted values will be unique, which helps mitigate traffic analysis or repeated-pattern attacks.
 - This mode is _not_ format-preserving: the output is 32 bytes (or 64 hex characters).
 
