@@ -146,7 +146,7 @@ size_t ipcrypt_decrypt_ip_str(const IPCrypt *ipcrypt,
 ```c
 typedef struct IPCryptPFX { ... } IPCryptPFX;
 
-void ipcrypt_pfx_init(IPCryptPFX *ipcrypt, const uint8_t key[IPCRYPT_PFX_KEYBYTES]);
+int ipcrypt_pfx_init(IPCryptPFX *ipcrypt, const uint8_t key[IPCRYPT_PFX_KEYBYTES]);
 void ipcrypt_pfx_deinit(IPCryptPFX *ipcrypt);
 
 // For 16-byte (binary) representation of IP addresses:
@@ -203,7 +203,7 @@ size_t ipcrypt_nd_decrypt_ip_str(const IPCrypt *ipcrypt,
 ```c
 typedef struct IPCryptNDX { ... } IPCryptNDX;
 
-void ipcrypt_ndx_init(IPCryptNDX *ipcrypt,
+int ipcrypt_ndx_init(IPCryptNDX *ipcrypt,
                       const uint8_t key[IPCRYPT_NDX_KEYBYTES]);
 
 void ipcrypt_ndx_deinit(IPCryptNDX *ipcrypt);
