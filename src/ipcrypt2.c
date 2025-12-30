@@ -981,8 +981,11 @@ ipcrypt_pfx_set_bit(uint8_t ip16[16], const unsigned int bit_index, const uint8_
 {
     const size_t  byte_index = 15 - bit_index / 8;
     const uint8_t bit_mask   = (uint8_t) (1 << (bit_index % 8));
-    const uint8_t mask       = (uint8_t) -((bit_value & 1));
+    uint8_t       mask       = (uint8_t) -((bit_value & 1));
 
+#if defined(__GNUC__) || defined(__clang__)
+    __asm__ __volatile__("" : "+r"(mask) ::);
+#endif
     ip16[byte_index] = (ip16[byte_index] & ~bit_mask) | (bit_mask & mask);
 }
 
