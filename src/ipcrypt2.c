@@ -147,11 +147,9 @@ typedef uint64x2_t BlockVec;
  */
 #    define BYTESHL128(a, b) vreinterpretq_u64_u8(vextq_s8(vdupq_n_s8(0), (uint8x16_t) a, 16 - (b)))
 /**
- * Reorder 32-bit lanes in a 128-bit register according to the indices (a, b, c, d).
+ * Broadcast 32-bit lane 3 across the 128-bit register.
  */
-#    define SHUFFLE32x4(x, a, b, c, d)                 \
-        vreinterpretq_u64_u32(__builtin_shufflevector( \
-            vreinterpretq_u32_u64(x), vreinterpretq_u32_u64(x), (a), (b), (c), (d)))
+#    define SHUFFLE32x4_3333(x) vreinterpretq_u64_u32(vdupq_laneq_u32(vreinterpretq_u32_u64(x), 3))
 /**
  * Invert an AES round key for decryption.
  */
@@ -187,8 +185,10 @@ AES_KEYGEN(BlockVec block_vec, const int rc)
     // This extracts the needed transformation for generating a new round key.
     uint8x16_t a = vaeseq_u8(vreinterpretq_u8_u64(block_vec), vmovq_n_u8(0));
     // Shuffle for the key expansion rotation.
-    const uint8x16_t b =
-        __builtin_shufflevector(a, a, 4, 1, 14, 11, 1, 14, 11, 4, 12, 9, 6, 3, 9, 6, 3, 12);
+    static const uint8_t aes_keygen_shuffle[16] = {
+        4, 1, 14, 11, 1, 14, 11, 4, 12, 9, 6, 3, 9, 6, 3, 12,
+    };
+    const BlockVec b = vreinterpretq_u64_u8(vqtbl1q_u8(a, vld1q_u8(aes_keygen_shuffle)));
     // Combine with round constant.
     const uint64x2_t c = SET64x2((uint64_t) rc << 32, (uint64_t) rc << 32);
     return XOR128(b, c);
@@ -283,7 +283,7 @@ typedef __m128i BlockVec;
 /**
  * Reorder 32-bit lanes in a 128-bit block.
  */
-#    define SHUFFLE32x4(x, a, b, c, d)       _mm_shuffle_epi32((x), _MM_SHUFFLE((d), (c), (b), (a)))
+#    define SHUFFLE32x4_3333(x)              _mm_shuffle_epi32((x), _MM_SHUFFLE(3, 3, 3, 3))
 /**
  * Invert an AES round key for decryption.
  */
@@ -359,7 +359,7 @@ expand_key(KeySchedule rkeys, const unsigned char key[IPCRYPT_KEYBYTES])
     s          = AES_KEYGEN(t, RC);           \
     t          = XOR128(t, BYTESHL128(t, 4)); \
     t          = XOR128(t, BYTESHL128(t, 8)); \
-    t          = XOR128(t, SHUFFLE32x4(s, 3, 3, 3, 3));
+    t          = XOR128(t, SHUFFLE32x4_3333(s));
 
     // Load the initial 128-bit key from memory.
     t = LOAD128(key);
@@ -984,7 +984,7 @@ ipcrypt_pfx_set_bit(uint8_t ip16[16], const unsigned int bit_index, const uint8_
     uint8_t       mask       = (uint8_t) -((bit_value & 1));
 
 #if defined(__GNUC__) || defined(__clang__)
-    __asm__ __volatile__("" : "+r"(mask) ::);
+    __asm__ __volatile__("" : "+r"(mask)::);
 #endif
     ip16[byte_index] = (ip16[byte_index] & ~bit_mask) | (bit_mask & mask);
 }
