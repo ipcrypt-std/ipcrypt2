@@ -145,7 +145,7 @@ typedef uint64x2_t BlockVec;
 /**
  * Shift left a 128-bit register by b bytes (zero-filling from the right).
  */
-#    define BYTESHL128(a, b) vreinterpretq_u64_u8(vextq_s8(vdupq_n_s8(0), (uint8x16_t) a, 16 - (b)))
+#    define BYTESHL128(a, b) vreinterpretq_u64_u8(vextq_s8(vdupq_n_s8(0), vreinterpretq_s8_u64(a), 16 - (b)))
 /**
  * Broadcast 32-bit lane 3 across the 128-bit register.
  */
