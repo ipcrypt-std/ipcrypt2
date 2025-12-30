@@ -348,7 +348,8 @@ typedef struct PFXState {
  * st: the AesState structure to be populated.
  * key: a 16-byte AES key.
  */
-static void __vectorcall expand_key(KeySchedule rkeys, const unsigned char key[IPCRYPT_KEYBYTES])
+static void __vectorcall
+expand_key(KeySchedule rkeys, const unsigned char key[IPCRYPT_KEYBYTES])
 {
     BlockVec t, s;
     size_t   i = 0;
@@ -978,11 +979,11 @@ ipcrypt_pfx_get_bit(const uint8_t ip16[16], const unsigned int bit_index)
 static void
 ipcrypt_pfx_set_bit(uint8_t ip16[16], const unsigned int bit_index, const uint8_t bit_value)
 {
-    if (bit_value) {
-        ip16[15 - bit_index / 8] |= (1 << (bit_index % 8));
-    } else {
-        ip16[15 - bit_index / 8] &= ~(1 << (bit_index % 8));
-    }
+    const size_t  byte_index = 15 - bit_index / 8;
+    const uint8_t bit_mask   = (uint8_t) (1 << (bit_index % 8));
+    const uint8_t mask       = (uint8_t) -((bit_value & 1));
+
+    ip16[byte_index] = (ip16[byte_index] & ~bit_mask) | (bit_mask & mask);
 }
 
 static void
