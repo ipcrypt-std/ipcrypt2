@@ -145,7 +145,7 @@ typedef uint64x2_t BlockVec;
 /**
  * Shift left a 128-bit register by b bytes (zero-filling from the right).
  */
-#    define BYTESHL128(a, b) vreinterpretq_u64_u8(vextq_s8(vdupq_n_s8(0), vreinterpretq_s8_u64(a), 16 - (b)))
+#    define BYTESHL128(a, b) vreinterpretq_u64_u8(vextq_u8(vdupq_n_u8(0), vreinterpretq_u8_u64(a), 16 - (b)))
 /**
  * Broadcast 32-bit lane 3 across the 128-bit register.
  */
@@ -166,11 +166,11 @@ typedef uint64x2_t BlockVec;
 static inline BlockVec
 SHL1_128(const BlockVec a)
 {
-    const BlockVec shl     = vshlq_n_u8(a, 1);
-    const BlockVec msb     = vshrq_n_u8(a, 7);
-    const BlockVec zero    = vdupq_n_u8(0);
-    const BlockVec carries = vextq_u8(msb, zero, 1);
-    return vorrq_u8(shl, carries);
+    const uint8x16_t shl     = vshlq_n_u8(vreinterpretq_u8_u64(a), 1);
+    const uint8x16_t msb     = vshrq_n_u8(vreinterpretq_u8_u64(a), 7);
+    const uint8x16_t zero    = vdupq_n_u8(0);
+    const uint8x16_t carries = vextq_u8(msb, zero, 1);
+    return vreinterpretq_u64_u8(vorrq_u8(shl, carries));
 }
 
 /**
