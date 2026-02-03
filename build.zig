@@ -17,7 +17,7 @@ pub fn build(b: *std.Build) void {
         .linkage = .static,
         .name = "ipcrypt2",
         .root_module = lib_mod,
-        .version = .{ .major = 1, .minor = 1, .patch = 10 },
+        .version = .{ .major = 1, .minor = 1, .patch = 11 },
     });
 
     b.installArtifact(lib);
