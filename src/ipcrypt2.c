@@ -1383,7 +1383,9 @@ ipcrypt_nd_encrypt_ip_str(const IPCrypt *ipcrypt, char encrypted_ip_str[IPCRYPT_
 
     COMPILER_ASSERT(IPCRYPT_NDIP_STR_BYTES == IPCRYPT_NDIP_BYTES * 2 + 1);
     // Convert to 16-byte IP.
-    ipcrypt_str_to_ip16(ip16, ip_str);
+    if (ipcrypt_str_to_ip16(ip16, ip_str) != 0) {
+        return 0;
+    }
     // Perform non-deterministic encryption.
     ipcrypt_nd_encrypt_ip16(ipcrypt, ndip, ip16, random);
     // Convert the 24-byte ndip to a hex string.
@@ -1468,7 +1470,9 @@ ipcrypt_ndx_encrypt_ip_str(const IPCryptNDX *ipcrypt,
 
     COMPILER_ASSERT(IPCRYPT_NDX_NDIP_STR_BYTES == IPCRYPT_NDX_NDIP_BYTES * 2 + 1);
     // Convert to 16-byte IP.
-    ipcrypt_str_to_ip16(ip16, ip_str);
+    if (ipcrypt_str_to_ip16(ip16, ip_str) != 0) {
+        return 0;
+    }
     // Perform non-deterministic encryption.
     ipcrypt_ndx_encrypt_ip16(ipcrypt, ndip, ip16, random);
     // Convert the 32-byte ndip to a hex string.
