@@ -1,4 +1,4 @@
-const ipcrypt = @cImport(@cInclude("ipcrypt2.h"));
+const ipcrypt = @import("ipcrypt2");
 
 const std = @import("std");
 const testing = std.testing;
