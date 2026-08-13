@@ -655,6 +655,8 @@ hex2bin(uint8_t *bin, size_t bin_maxlen, const char *hex, size_t hex_len)
             c -= '0';
         } else if (c >= 'a' && c <= 'f') {
             c -= 'a' - 10;
+        } else if (c >= 'A' && c <= 'F') {
+            c -= 'A' - 10;
         } else {
             return 0U;
         }
@@ -662,6 +664,8 @@ hex2bin(uint8_t *bin, size_t bin_maxlen, const char *hex, size_t hex_len)
             b -= '0';
         } else if (b >= 'a' && b <= 'f') {
             b -= 'a' - 10;
+        } else if (b >= 'A' && b <= 'F') {
+            b -= 'A' - 10;
         } else {
             return 0U;
         }
@@ -706,7 +710,8 @@ ipcrypt_zeroize(void *pnt, size_t len)
 int
 ipcrypt_key_from_hex(uint8_t *key, size_t key_len, const char *hex, size_t hex_len)
 {
-    if (hex_len != 2 * IPCRYPT_KEYBYTES && hex_len != 2 * IPCRYPT_NDX_KEYBYTES) {
+    if ((key_len != IPCRYPT_KEYBYTES && key_len != IPCRYPT_NDX_KEYBYTES) ||
+        hex_len != key_len * 2U) {
         return -1;
     }
     if (hex2bin(key, key_len, hex, hex_len) != key_len) {

@@ -287,6 +287,11 @@ test "key from hex conversion" {
     const expected_key16: [16]u8 = .{ 0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef };
     try testing.expectEqualSlices(u8, &expected_key16, &key16);
 
+    // Uppercase digits are valid hexadecimal too.
+    const uppercase_hex16 = "0123456789ABCDEF0123456789ABCDEF";
+    try testing.expectEqual(0, ipcrypt.ipcrypt_key_from_hex(&key16, key16.len, uppercase_hex16, uppercase_hex16.len));
+    try testing.expectEqualSlices(u8, &expected_key16, &key16);
+
     // Test valid 32-byte key
     const hex32 = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
     var key32: [32]u8 = undefined;
@@ -302,6 +307,23 @@ test "key from hex conversion" {
     // Test invalid hex characters
     const invalid_chars = "0123456789abcdef0123456789abcdeg";
     try testing.expectEqual(-1, ipcrypt.ipcrypt_key_from_hex(&key, key.len, invalid_chars, invalid_chars.len));
+
+    // The output size must identify one of the two supported key sizes.
+    try testing.expectEqual(-1, ipcrypt.ipcrypt_key_from_hex(&key, 0, hex16, hex16.len));
+}
+
+test "ciphertext from uppercase hex conversion" {
+    const nd_hex = "08E0C289BFF23B7CB349AADFE3BCEF56221C384C7C217B16";
+    var ndip: [ipcrypt.IPCRYPT_NDIP_BYTES]u8 = undefined;
+    try testing.expectEqual(0, ipcrypt.ipcrypt_ndip_from_hex(&ndip, nd_hex, nd_hex.len));
+    try testing.expectEqual(@as(u8, 0x08), ndip[0]);
+    try testing.expectEqual(@as(u8, 0x16), ndip[ndip.len - 1]);
+
+    const ndx_hex = "21BD1834BC088CD2B4ECBE30B70898D782DB0D4125FDACE61DB35B8339F20EE5";
+    var ndx_ndip: [ipcrypt.IPCRYPT_NDX_NDIP_BYTES]u8 = undefined;
+    try testing.expectEqual(0, ipcrypt.ipcrypt_ndx_ndip_from_hex(&ndx_ndip, ndx_hex, ndx_hex.len));
+    try testing.expectEqual(@as(u8, 0x21), ndx_ndip[0]);
+    try testing.expectEqual(@as(u8, 0xE5), ndx_ndip[ndx_ndip.len - 1]);
 }
 
 test "ipcrypt-pfx round-trip" {
