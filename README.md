@@ -417,7 +417,7 @@ int main(void) {
 
 ## Bindings and Other Implementations
 
-- [Python (reference implementation)](https://github.com/jedisct1/draft-denis-ipcrypt/tree/main/implementations/python)
+- [Python (reference implementation)](https://github.com/ipcrypt-std/draft-denis-ipcrypt/tree/main/implementations/python)
 - [Rust - Native implementation](https://docs.rs/ipcrypt_rs)
 - [Rust - C bindings](https://docs.rs/ipcrypt2)
 - [JavaScript (Browser and Node.js)](https://github.com/jedisct1/ipcrypt-js)
