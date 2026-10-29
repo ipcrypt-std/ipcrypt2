@@ -57,14 +57,20 @@
 #endif
 
 #ifndef HAVE_EXPLICIT_BZERO
-#    if (defined(__OpenBSD__) || defined(__FreeBSD__) || defined(__NetBSD__) || \
-         defined(__DragonFly__)) ||                                             \
+#    if (defined(__OpenBSD__) || defined(__FreeBSD__) || \
+         defined(__DragonFly__)) ||                      \
         (defined(__sun) && defined(__illumos__))
 #        define HAVE_EXPLICIT_BZERO 1
 #    elif defined(__GLIBC__) && defined(__GLIBC_PREREQ) && defined(_GNU_SOURCE)
 #        if __GLIBC_PREREQ(2, 25)
 #            define HAVE_EXPLICIT_BZERO 1
 #        endif
+#    endif
+#endif
+
+#ifndef HAVE_EXPLICIT_MEMSET
+#    if defined(__NetBSD__)
+#        define HAVE_EXPLICIT_MEMSET 1
 #    endif
 #endif
 
@@ -683,6 +689,8 @@ ipcrypt_zeroize(void *pnt, size_t len)
 {
 #ifdef HAVE_EXPLICIT_BZERO
     explicit_bzero(pnt, len);
+#elif defined(HAVE_EXPLICIT_MEMSET)
+    explicit_memset(pnt, 0, len);
 #elif defined(_MSC_VER)
     SecureZeroMemory(pnt, len);
 #elif defined(__STDC_LIB_EXT1__)
