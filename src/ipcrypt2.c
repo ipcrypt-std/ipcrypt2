@@ -408,6 +408,36 @@ aes_encrypt(uint8_t x[16], const AesState *st)
     STORE128(x, t);
 }
 
+#ifdef AES_XENCRYPT
+static BlockVec
+aes_xdecrypt_rounds(BlockVec t, const BlockVec *rkeys, const BlockVec first_key,
+                    const BlockVec mask, const BlockVec last_key)
+{
+    const BlockVec k9 = RKINVERT(XOR128(mask, rkeys[9]));
+    const BlockVec k8 = RKINVERT(XOR128(mask, rkeys[8]));
+    const BlockVec k7 = RKINVERT(XOR128(mask, rkeys[7]));
+    const BlockVec k6 = RKINVERT(XOR128(mask, rkeys[6]));
+    const BlockVec k5 = RKINVERT(XOR128(mask, rkeys[5]));
+    const BlockVec k4 = RKINVERT(XOR128(mask, rkeys[4]));
+    const BlockVec k3 = RKINVERT(XOR128(mask, rkeys[3]));
+    const BlockVec k2 = RKINVERT(XOR128(mask, rkeys[2]));
+    const BlockVec k1 = RKINVERT(XOR128(mask, rkeys[1]));
+
+    COMPILER_ASSERT(ROUNDS == 10);
+    t = AES_XDECRYPT(t, first_key);
+    t = AES_XDECRYPT(t, k9);
+    t = AES_XDECRYPT(t, k8);
+    t = AES_XDECRYPT(t, k7);
+    t = AES_XDECRYPT(t, k6);
+    t = AES_XDECRYPT(t, k5);
+    t = AES_XDECRYPT(t, k4);
+    t = AES_XDECRYPT(t, k3);
+    t = AES_XDECRYPT(t, k2);
+    t = AES_XDECRYPTLAST(t, k1);
+    return XOR128(t, last_key);
+}
+#endif
+
 /**
  * aes_decrypt decrypts a 16-byte block x in-place using the expanded keys in st.
  */
@@ -416,17 +446,14 @@ aes_decrypt(uint8_t x[16], const AesState *st)
 {
     const BlockVec *rkeys = st->rkeys;
     BlockVec        t;
+#ifndef AES_XENCRYPT
     size_t          i;
+#endif
 
     // Given the purpose of this library, we assume that decryption is not a frequent operation.
 #ifdef AES_XENCRYPT
     // AArch64 path with AES_XDECRYPT.
-    t = AES_XDECRYPT(LOAD128(x), rkeys[ROUNDS]);
-    for (i = ROUNDS - 1; i > 1; i--) {
-        t = AES_XDECRYPT(t, RKINVERT(rkeys[i]));
-    }
-    t = AES_XDECRYPTLAST(t, RKINVERT(rkeys[1]));
-    t = XOR128(t, rkeys[0]);
+    t = aes_xdecrypt_rounds(LOAD128(x), rkeys, rkeys[ROUNDS], vdupq_n_u64(0), rkeys[0]);
 #else
     // x86_64 path using AES_DECRYPT.
     t = XOR128(LOAD128(x), rkeys[ROUNDS]);
@@ -477,19 +504,17 @@ static void
 aes_decrypt_with_tweak(uint8_t x[16], const AesState *st, const uint8_t tweak[IPCRYPT_TWEAKBYTES])
 {
     const BlockVec *rkeys = st->rkeys;
-    const BlockVec  tweak_block     = TWEAK_EXPAND(tweak);
-    const BlockVec  tweak_block_inv = RKINVERT(tweak_block);
+    const BlockVec  tweak_block = TWEAK_EXPAND(tweak);
     BlockVec        t;
+#ifndef AES_XENCRYPT
+    const BlockVec  tweak_block_inv = RKINVERT(tweak_block);
     size_t          i;
+#endif
 
     // Given the purpose of this library, we assume that decryption is not a frequent operation.
 #ifdef AES_XENCRYPT
-    t = AES_XDECRYPT(LOAD128(x), XOR128(tweak_block, rkeys[ROUNDS]));
-    for (i = ROUNDS - 1; i > 1; i--) {
-        t = AES_XDECRYPT(t, XOR128(tweak_block_inv, RKINVERT(rkeys[i])));
-    }
-    t = AES_XDECRYPTLAST(t, XOR128(tweak_block_inv, RKINVERT(rkeys[1])));
-    t = XOR128(t, XOR128(tweak_block, rkeys[0]));
+    t = aes_xdecrypt_rounds(LOAD128(x), rkeys, XOR128(tweak_block, rkeys[ROUNDS]), tweak_block,
+                            XOR128(tweak_block, rkeys[0]));
 #else
     t = XOR128_3(LOAD128(x), tweak_block, rkeys[ROUNDS]);
     for (i = ROUNDS - 1; i > 0; i--) {
@@ -564,16 +589,14 @@ aes_ndx_decrypt(uint8_t x[16], const NDXState *st, const uint8_t tweak[IPCRYPT_N
     const BlockVec  tt    = aes_xex_tweak(st, tweak);
     const BlockVec *rkeys = st->rkeys;
     BlockVec        t;
+#ifndef AES_XENCRYPT
     size_t          i;
+#endif
 
 #ifdef AES_XENCRYPT
     // AArch64 path with AES_XDECRYPT.
-    t = AES_XDECRYPT(XOR128(LOAD128(x), tt), rkeys[ROUNDS]);
-    for (i = ROUNDS - 1; i > 1; i--) {
-        t = AES_XDECRYPT(t, RKINVERT(rkeys[i]));
-    }
-    t = AES_XDECRYPTLAST(t, RKINVERT(rkeys[1]));
-    t = XOR128_3(t, rkeys[0], tt);
+    t = aes_xdecrypt_rounds(XOR128(LOAD128(x), tt), rkeys, rkeys[ROUNDS], vdupq_n_u64(0),
+                            XOR128(rkeys[0], tt));
 #else
     // x86_64 path using AES_DECRYPT.
     t = XOR128(XOR128(LOAD128(x), tt), rkeys[ROUNDS]);
